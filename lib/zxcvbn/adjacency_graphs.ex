@@ -2,7 +2,7 @@ defmodule ZXCVBN.AdjacencyGraphs do
   @moduledoc """
   Adjacency graph ceated by [this script][adjacency-graph-script]
 
-  [adjacency-graph-script]: https://github.com/dropbox/zxcvbn/blob/master/data-scripts/build_keyboard_adjacency_graphs.py
+  [adjacency-graph-script]: https://github.com/dropbox/zxcvbn/blob/cb040cd780e42adaafb998625c5a5c91db3dbaab/data-scripts/build_keyboard_adjacency_graphs.py
   """
 
   @adjacency_graph %{
