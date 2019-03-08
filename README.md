@@ -10,3 +10,10 @@ def deps do
   ]
 end
 ```
+
+## Usage
+
+```elixir
+import ZXCVBN
+zxcvbn("Some Password")
+```
