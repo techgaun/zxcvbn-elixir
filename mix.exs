@@ -1,4 +1,4 @@
-defmodule Zxcvbn.MixProject do
+defmodule ZXCVBN.MixProject do
   use Mix.Project
 
   def project do

@@ -1,18 +1,21 @@
-defmodule Zxcvbn do
+defmodule ZXCVBN do
   @moduledoc """
-  Documentation for Zxcvbn.
   """
 
-  @doc """
-  Hello world.
+  alias ZXCVBN.{
+    Feedback,
+    Matching,
+    Scoring,
+    TimeEstimates
+  }
 
-  ## Examples
+  @spec zxcvbn(String.t(), [String.t()]) :: :ok
+  def zxcvbn(string, user_inputs \\ []) do
+    user_inputs = normalize_inputs(user_inputs)
+    :ok
+  end
 
-      iex> Zxcvbn.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  defp normalize_inputs(user_inputs) do
+    Enum.map(user_inputs, &String.downcase/1)
   end
 end
