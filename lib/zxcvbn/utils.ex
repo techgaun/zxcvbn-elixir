@@ -21,4 +21,9 @@ defmodule ZXCVBN.Utils do
 
   defp do_factorial(n, fac) when n in 0..1, do: fac
   defp do_factorial(n, fac), do: do_factorial(n - 1, fac * n)
+
+  @spec pow(integer, integer) :: integer
+  def  pow(n, k), do: pow(n, k, 1)
+  defp pow(_, 0, acc), do: acc
+  defp pow(n, k, acc), do: pow(n, k - 1, n * acc)
 end

@@ -3,6 +3,8 @@ defmodule ZXCVBN.Scoring do
   Score calculation
   """
 
+  import ZXCVBN.Utils
+
   def calc_average_degree(graph) do
     graph
     |> Enum.reduce(0, fn {_key, neighbors}, sum ->
@@ -68,5 +70,90 @@ defmodule ZXCVBN.Scoring do
     n = String.length(password)
     # partition matches into sublists according to ending index j
     matches_by_j = List.duplicate([], n)
+    matches_by_j =
+      matches
+      |> Enum.map(fn m ->
+        List.update_at(matches_by_j, m[:j], &(&1 ++ [m]))
+      end)
+      |> Enum.map(fn list ->
+        Enum.sort(list, &(&1[:i] >= &2[:i]))
+      end)
+
+    placeholder = List.duplicate(%{}, 10)
+    optimal = %{
+      m: placeholder,
+      pi: placeholder,
+      g: placeholder
+    }
+  end
+
+  defp estimate_guesses(%{guesses: guesses}, _password) when not is_nil(guesses) do
+    guesses
+  end
+
+  defp estimate_guesses(%{token: token, pattern: pattern, guesses: guesses} = match, password) do
+    token_len = String.length(token)
+
+    min_guesses =
+      if token_len < String.length(password) do
+        if token_len === 1, do: @min_submatch_guesses_single_char, else: @min_submatch_guesses_multi_char
+      else
+        1
+      end
+
+    guesses = apply(__MODULE__, :"#{pattern}_guesses", [match])
+    guesses = max(guesses, min_guesses)
+    # guesses_log10 = :math.log10(guesses) # seems to be calculated but unused
+    guesses
+  end
+
+  @doc false
+  def bruteforce_guesses(%{token: token} = _match) do
+    token_len = String.length(token)
+    guesses = pow(@bruteforce_cardinality, token_len)
+    # small detail: make bruteforce matches at minimum one guess bigger than
+    # smallest allowed submatch guesses, such that non-bruteforce submatches
+    # over the same [i..j] take precedence.
+    min_guesses =
+      if token_len === 1 do
+        @min_submatch_guesses_single_char + 1
+      else
+        @min_submatch_guesses_multi_char + 1
+      end
+
+    max(guesses, min_guesses)
+  end
+
+  @doc false
+  def dictionary_guesses(%{rank: rank} = match) do
+    match =
+      match
+      |> Map.put(:base_guesses, rank)
+      |> Map.put(:uppercase_variations, uppercase_variations(match))
+      |> Map.put(:l33t_variations, l33t_variations(match))
+
+    reversed_variations = Map.get(match, :reversed, false) and 2 or 1
+
+    (
+      match[:base_guesses] * match[:uppercase_variations] *
+        match[:l33t_variations] * reversed_variations
+    )
+  end
+
+  @start_upper ~r'^[A-Z][^A-Z]+$'
+  @end_upper ~r'^[^A-Z]+[A-Z]$'
+  @all_upper ~r'^[^a-z]+$'
+  @all_lower ~r'^[^A-Z]+$'
+
+  defp uppercase_variations(%{token: word} = _match) do
+    cond do
+      Regex.match?(@all_lower, word) or String.downcase(word) === word ->
+        1
+
+      Enum.any?([@start_upper, @end_upper, @all_upper], & Regex.match?(&1, word)) ->
+        2
+
+      true ->
+    end
   end
 end
