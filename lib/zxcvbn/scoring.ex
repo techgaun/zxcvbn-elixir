@@ -154,6 +154,26 @@ defmodule ZXCVBN.Scoring do
         2
 
       true ->
+        {u, l} =
+          word
+          |> to_charlist()
+          |> Enum.reduce({0, 0}, fn
+            chr, {u, l} when chr in ?A..?Z ->
+              {u + 1, l}
+            chr, {u, l} when chr in ?a..?z ->
+              {u, l + 1}
+
+            _chr, {u, l} -> {u, l}
+          end)
+
+        Enum.reduce(1..min(u, l), 0, fn i, variations ->
+          variations + nCk(u + l, i)
+        end)
     end
   end
+
+  defp l33t_variations(%{l33t: l33t} = match) when not is_nil(l33t) do
+  end
+
+  defp l33t_variations(_match), do: 1
 end
