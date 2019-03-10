@@ -125,6 +125,84 @@ defmodule ZXCVBN.Scoring do
   end
 
   @doc false
+  def repeat_guesses(%{base_guesses: base_guesses, repeat_count: repeat_count} = _match) do
+    base_guesses * repeat_count
+  end
+
+  @doc false
+  def sequence_guesses(%{token: token} = match) do
+    first_chr = String.first(token)
+    # lower guesses for obvious starting points
+    base_guesses =
+      cond do
+        first_chr in ["a", "A", "z", "Z", "0", "1", "9"] ->
+          4
+
+        Regex.match?(~r/\d/, first_chr) ->
+          10
+
+        true ->
+          # could give a higher base for uppercase,
+          # assigning 26 to both upper and lower sequences is more
+          # conservative.
+          26
+      end
+
+    base_guesses = if is_nil(Map.get(match, :ascending)), do: base_guesses * 2, else: base_guesses
+
+    base_guesses * String.length(token)
+  end
+
+  @char_class_bases %{
+    alpha_lower: 26,
+    alpha_upper: 26,
+    alpha: 52,
+    alphanumeric: 62,
+    digits: 10,
+    symbols: 33
+  }
+  @char_class_bases_names Map.keys(@char_class_bases)
+
+  @doc false
+  def regex_guesses(%{token: token} = match) do
+    char_class_base = Map.get(match, :regex_name)
+    cond do
+      char_class_base in @char_class_bases_names ->
+        pow(@char_class_bases[char_class_base], String.length(token))
+
+      char_class_base === 'recent_year' ->
+        # conservative estimate of year space: num years from `@reference_year`.
+        # if year is close to `@reference_year`, estimate a year space of
+        # `@min_year_space`
+        year_space =
+          match
+          |> Map.get(:regex_match)
+          |> hd()
+          |> String.to_integer()
+          |> Kernel.-(@reference_year)
+          |> abs()
+
+        max(year_space, @min_year_space)
+
+      true ->
+        nil
+    end
+  end
+
+  @doc false
+  def date_guesses(%{year: year} = match) do
+    year_space =
+      year
+      |> Kernel.-(@reference_year)
+      |> abs()
+      |> max(@min_year_space)
+
+    guesses = year_space * 365
+
+    if Map.get(match, :separator), do: guesses * 4, else: guesses
+  end
+
+  @doc false
   def dictionary_guesses(%{rank: rank} = match) do
     match =
       match
@@ -132,7 +210,7 @@ defmodule ZXCVBN.Scoring do
       |> Map.put(:uppercase_variations, uppercase_variations(match))
       |> Map.put(:l33t_variations, l33t_variations(match))
 
-    reversed_variations = Map.get(match, :reversed, false) and 2 or 1
+    reversed_variations = if Map.get(match, :reversed, false), do: 2, else: 1
 
     (
       match[:base_guesses] * match[:uppercase_variations] *
@@ -172,7 +250,40 @@ defmodule ZXCVBN.Scoring do
     end
   end
 
-  defp l33t_variations(%{l33t: l33t} = match) when not is_nil(l33t) do
+  defp l33t_variations(%{token: token, sub: sub, l33t: l33t} = _match) when not is_nil(l33t) do
+    Enum.reduce(sub, 1, fn {subbed, unsubbed}, variations ->
+      # lower-case match.token before calculating: capitalization shouldn't
+      # affect l33t calc.
+      {s, u} =
+        token
+        |> String.downcase()
+        |> to_charlist()
+        |> Enum.reduce({0, 0}, fn
+          chr, {s, u} when chr === subbed ->
+            {s + 1, u}
+          chr, {s, u} when chr === unsubbed ->
+            {s, u + 1}
+
+          _chr, {s, u} ->
+            {s, u}
+        end)
+
+      if s === 0 or u === 0 do
+        # for this sub, password is either fully subbed (444) or fully
+        # unsubbed (aaa) treat that as doubling the space (attacker needs
+        # to try fully subbed chars in addition to unsubbed.)
+        variations * 2
+      else
+        # this case is similar to capitalization:
+        # with aa44a, U = 3, S = 2, attacker needs to try unsubbed + one
+        # sub + two subs
+        p = min(u, s)
+        1..p
+        |> Enum.map(& nCk(u + s, &1))
+        |> Enum.sum()
+        |> Kernel.*(variations)
+      end
+    end)
   end
 
   defp l33t_variations(_match), do: 1
