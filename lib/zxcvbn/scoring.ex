@@ -422,6 +422,9 @@ defmodule ZXCVBN.Scoring do
   @all_upper ~r'^[^a-z]+$'
   @all_lower ~r'^[^A-Z]+$'
 
+  def re_start_upper, do: @start_upper
+  def re_all_upper, do: @all_upper
+
   defp uppercase_variations(%{token: word} = _match) do
     cond do
       Regex.match?(@all_lower, word) or String.downcase(word) === word ->
