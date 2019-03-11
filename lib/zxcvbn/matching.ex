@@ -132,6 +132,43 @@ defmodule ZXCVBN.Matching do
     |> _sort()
   end
 
+  @doc false
+  def l33t_match(password, ranked_dictionaries, l33t_table \\ @l33t_table) do
+    for sub <- enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)) do
+      subbed_password = translate(password, sub)
+
+      for match <- dictionary_match(subbed_password, ranked_dictionaries) do
+        token = String.slice(password, match[:i], match[:j] + 1 - match[:i])
+        # only return the matches that contain an actual substitution
+        if String.downcase(token) !== Map.get(match, :matched_word) do
+          # subset of mappings in sub that are in use for this match
+          token_graphemes = String.graphemes(token)
+          match_sub =
+            for {subbed_chr, chr} <- sub, subbed_chr in token_graphemes do
+              {subbed_chr, chr}
+            end
+
+          sub_display = Enum.map_join(match_sub, ", ", fn {k, v} ->
+            "#{k} -> #{v}"
+          end)
+
+          match
+          |> Map.put(:l33t, true)
+          |> Map.put(:token, token)
+          |> Map.put(:sub, match_sub)
+          |> Map.put(:sub_display, sub_display)
+        end
+      end
+    end
+    |> Enum.reject(fn
+      nil -> true
+      %{token: token} ->
+        String.length(token) <= 1
+      _ -> false
+    end)
+    |> _sort()
+  end
+
   defp relevant_l33t_subtable(password, table) do
     password_chars = String.graphemes(password)
 
@@ -154,31 +191,70 @@ defmodule ZXCVBN.Matching do
   defp enumerate_l33t_subs(table) do
     keys = Map.keys(table)
 
-    dedup = fn subs ->
-      Enum.reduce(subs, {[], []}, fn sub, {deduped, members} ->
-        assoc =
-          sub
-          |> Enum.into(%{}, fn {v, k} -> {k, v} end)
-          |> Enum.sort()
+    subs = l33t_helper(table, keys, [[]])
 
-        label = Enum.map_join(assoc, "-", fn {k, v} ->
-          "#{k},#{v}"
-        end)
-
-        if label in members do
-          {deduped, members}
-        else
-          {[sub | deduped], [label | members]}
-        end
-      end)
+    for sub <- subs, {l33t_chr, chr} <- sub, into: %{} do
+      {l33t_chr, chr}
     end
   end
 
-  defp l33t_helper([first_key | rest_keys], subs) do
+  defp translate(string, chr_map) do
+    for char <- String.graphemes(string) do
+      if chr = Map.get(chr_map, char, false) do
+        chr
+      else
+        char
+      end
+    end
+    |> Enum.join("")
   end
 
-  defp l33t_helper(_keys, subs) do
+  defp l33t_helper(table, [first_key | rest_keys], subs) do
+    next_subs =
+      for l33t_chr <- Map.get(table, first_key), sub <- subs do
+        dup_l33t_index = Enum.reduce(0..(length(sub) - 1), -1, fn i, dup_l33t_index ->
+          if get_in(sub, [i, 0]) === l33t_chr do
+            i
+          else
+            dup_l33t_index
+          end
+        end)
+
+        if dup_l33t_index === -1 do
+          "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes()
+        else
+          sub_alternative = "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
+
+          [sub, sub_alternative]
+        end
+      end
+      |> List.flatten()
+
+    subs = dedup(next_subs)
+    l33t_helper(table, rest_keys, subs)
+  end
+
+  defp l33t_helper(_table, _keys, subs) do
     subs
+  end
+
+  def dedup(subs) do
+    Enum.reduce(subs, {[], []}, fn sub, {deduped, members} ->
+      assoc =
+        sub
+        |> Enum.into(%{}, fn {v, k} -> {k, v} end)
+        |> Enum.sort()
+
+      label = Enum.map_join(assoc, "-", fn {k, v} ->
+        "#{k},#{v}"
+      end)
+
+      if label in members do
+        {deduped, members}
+      else
+        {[sub | deduped], [label | members]}
+      end
+    end)
   end
 
   # internal sorting
