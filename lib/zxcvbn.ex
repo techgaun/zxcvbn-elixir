@@ -16,6 +16,8 @@ defmodule ZXCVBN do
   end
 
   defp normalize_inputs(user_inputs) do
-    Enum.map(user_inputs, &String.downcase/1)
+    user_inputs
+    |> Stream.map(&to_string/1)
+    |> Enum.map(&String.downcase/1)
   end
 end
