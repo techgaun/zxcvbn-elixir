@@ -111,6 +111,7 @@ defmodule ZXCVBN.Matching do
         }
       end
     end
+    |> Enum.reject(&is_nil/1)
     |> _sort()
   end
 
@@ -129,6 +130,55 @@ defmodule ZXCVBN.Matching do
       |> Map.put(:j, length - 1 - match[:i])
     end)
     |> _sort()
+  end
+
+  defp relevant_l33t_subtable(password, table) do
+    password_chars = String.graphemes(password)
+
+    for {letter, subs} <- table do
+      relevant_subs = Enum.filter(subs, fn sub ->
+        sub in password_chars
+      end)
+
+      case relevant_subs do
+        [_ | _] ->
+          {letter, relevant_subs}
+
+        _ -> nil
+      end
+    end
+    |> Enum.reject(&is_nil/1)
+    |> Enum.into(%{})
+  end
+
+  defp enumerate_l33t_subs(table) do
+    keys = Map.keys(table)
+
+    dedup = fn subs ->
+      Enum.reduce(subs, {[], []}, fn sub, {deduped, members} ->
+        assoc =
+          sub
+          |> Enum.into(%{}, fn {v, k} -> {k, v} end)
+          |> Enum.sort()
+
+        label = Enum.map_join(assoc, "-", fn {k, v} ->
+          "#{k},#{v}"
+        end)
+
+        if label in members do
+          {deduped, members}
+        else
+          {[sub | deduped], [label | members]}
+        end
+      end)
+    end
+  end
+
+  defp l33t_helper([first_key | rest_keys], subs) do
+  end
+
+  defp l33t_helper(_keys, subs) do
+    subs
   end
 
   # internal sorting
