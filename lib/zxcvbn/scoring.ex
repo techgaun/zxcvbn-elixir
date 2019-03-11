@@ -27,38 +27,40 @@ defmodule ZXCVBN.Scoring do
     r
   end
 
-  # ------------------------------------------------------------------------------
-  # search --- most guessable match sequence -------------------------------------
-  # ------------------------------------------------------------------------------
-  #
-  # takes a sequence of overlapping matches, returns the non-overlapping sequence with
-  # minimum guesses. the following is a O(l_max * (n + m)) dynamic programming algorithm
-  # for a length-n password with m candidate matches. l_max is the maximum optimal
-  # sequence length spanning each prefix of the password. In practice it rarely exceeds 5 and the
-  # search terminates rapidly.
-  #
-  # the optimal "minimum guesses" sequence is here defined to be the sequence that
-  # minimizes the following function:
-  #
-  #    g = l! * Product(m.guesses for m in sequence) + D^(l - 1)
-  #
-  # where l is the length of the sequence.
-  #
-  # the factorial term is the number of ways to order l patterns.
-  #
-  # the D^(l-1) term is another length penalty, roughly capturing the idea that an
-  # attacker will try lower-length sequences first before trying length-l sequences.
-  #
-  # for example, consider a sequence that is date-repeat-dictionary.
-  #  - an attacker would need to try other date-repeat-dictionary combinations,
-  #    hence the product term.
-  #  - an attacker would need to try repeat-date-dictionary, dictionary-repeat-date,
-  #    ..., hence the factorial term.
-  #  - an attacker would also likely try length-1 (dictionary) and length-2 (dictionary-date)
-  #    sequences before length-3. assuming at minimum D guesses per pattern type,
-  #    D^(l-1) approximates Sum(D^i for i in [1..l-1]
-  #
-  # ------------------------------------------------------------------------------
+  @doc """
+  ------------------------------------------------------------------------------
+  search --- most guessable match sequence -------------------------------------
+  ------------------------------------------------------------------------------
+
+  takes a sequence of overlapping matches, returns the non-overlapping sequence with
+  minimum guesses. the following is a O(l_max * (n + m)) dynamic programming algorithm
+  for a length-n password with m candidate matches. l_max is the maximum optimal
+  sequence length spanning each prefix of the password. In practice it rarely exceeds 5 and the
+  search terminates rapidly.
+
+  the optimal "minimum guesses" sequence is here defined to be the sequence that
+  minimizes the following function:
+
+     g = l! * Product(m.guesses for m in sequence) + D^(l - 1)
+
+  where l is the length of the sequence.
+
+  the factorial term is the number of ways to order l patterns.
+
+  the D^(l-1) term is another length penalty, roughly capturing the idea that an
+  attacker will try lower-length sequences first before trying length-l sequences.
+
+  for example, consider a sequence that is date-repeat-dictionary.
+   - an attacker would need to try other date-repeat-dictionary combinations,
+     hence the product term.
+   - an attacker would need to try repeat-date-dictionary, dictionary-repeat-date,
+     ..., hence the factorial term.
+   - an attacker would also likely try length-1 (dictionary) and length-2 (dictionary-date)
+     sequences before length-3. assuming at minimum D guesses per pattern type,
+     D^(l-1) approximates Sum(D^i for i in [1..l-1]
+
+  ------------------------------------------------------------------------------
+  """
   def most_guessable_match_sequence(password, matches, exclude_additive? \\ false) do
     n = String.length(password)
     # partition matches into sublists according to ending index j
@@ -78,13 +80,166 @@ defmodule ZXCVBN.Scoring do
       pi: placeholder,
       g: placeholder
     }
+
+    # helper: considers whether a length-l sequence ending at match m is better
+    # (fewer guesses) than previously encountered sequences, updating state if
+    # so.
+    update = fn m, l, optimal ->
+      k = m[:j]
+      pi = estimate_guesses(m, password)
+      pi =
+        if l > 1 do
+          # we're considering a length-l sequence ending with match m:
+          # obtain the product term in the minimization function by
+          # multiplying m's guesses by the product of the length-(l-1)
+          # sequence ending just before m, at m.i - 1.
+          pi * optimal[:pi][m[:i] -1][l - 1]
+        else
+          pi
+        end
+
+      # calculate the minimization func
+      g = factorial(l) * pi
+      g = if exclude_additive?, do: g, else: g + pow(@min_guesses_before_growing_sequence, (l - 1))
+
+      # update state if new best.
+      # first see if any competing sequences covering this prefix, with l or
+      # fewer matches, fare better than this sequence. if so, skip it and
+      # return.
+
+      continue? =
+        Enum.reduce_while(optimal[:g][k], true, fn {competing_l, competing_g}, acc ->
+          cond do
+            competing_l > l ->
+              {:halt, true}
+
+            competing_g <= g ->
+              {:halt, false}
+
+            true ->
+              {:cont, acc}
+          end
+        end)
+
+      if continue? do
+        optimal
+        |> put_in([:g, k, l], g)
+        |> put_in([:m, k, l], m)
+        |> put_in([:pi, k, l], pi)
+      else
+        optimal
+      end
+    end
+
+    # helper: make bruteforce match objects spanning i to j, inclusive.
+    make_bruteforce_match = fn i, j, password ->
+      %{
+        pattern: :bruteforce,
+        token: String.slice(password, i, String.length(password) - j),
+        i: i,
+        j: j
+      }
+    end
+
+    # helper: evaluate bruteforce matches ending at k.
+    bruteforce_update = fn k, password, optimal ->
+      # see if a single bruteforce match spanning the k-prefix is optimal.
+      m = make_bruteforce_match.(0, k, password)
+      optimal = update.(m, 1, optimal)
+
+      Enum.reduce_while(1..k, optimal, fn i, optimal ->
+        # generate k bruteforce matches, spanning from (i=1, j=k) up to
+        # (i=k, j=k). see if adding these new matches to any of the
+        # sequences in optimal[i-1] leads to new bests.
+        m = make_bruteforce_match.(i, k, password)
+
+        Enum.reduce_while(optimal[:m][i - 1], optimal, fn {l, last_m}, optimal ->
+          l = String.to_integer(l)
+
+          # corner: an optimal sequence will never have two adjacent
+          # bruteforce matches. it is strictly better to have a single
+          # bruteforce match spanning the same region: same contribution
+          # to the guess product with a lower length.
+          # --> safe to skip those cases.
+          if Map.get(last_m, :pattern) === :bruteforce do
+            {:halt, optimal}
+          else
+            {:cont, update.(m, l + 1, optimal)}
+          end
+        end)
+      end)
+    end
+
+    # helper: step backwards through optimal.m starting at the end,
+    # constructing the final optimal match sequence.
+    unwind = fn n, optimal ->
+      k = n - 1
+      # find the final best sequence length and score
+      l = nil
+      g = :infinity
+
+      {l, _g} = Enum.reduce(optimal[:g][k], {l, g}, fn
+        {candidate_l, candidate_g}, {_l, g} when candidate_g < g ->
+          {candidate_l, candidate_g}
+
+        _, {l, g} ->
+          {l, g}
+      end)
+
+      optimal_match_sequence_fun(k, l, optimal, [])
+    end
+
+    Enum.reduce(0..n-1, optimal, fn k, optimal ->
+      optimal =
+        Enum.reduce(0..(matches_by_j[k] - 1), optimal, fn m, optimal ->
+          if m[:i] > 0 do
+            Enum.reduce(0..(optimal[:m][m[:i] - 1]), optimal, fn l, optimal ->
+              update.(m, String.to_integer(l) + 1, optimal)
+            end)
+          else
+            update.(m, 1, optimal)
+          end
+        end)
+
+      bruteforce_update.(k, password, optimal)
+    end)
+
+    optimal_match_sequence = unwind.(n, optimal)
+    optimal_l = length(optimal_match_sequence)
+
+    guesses =
+      # corner: empty password
+      if String.length(password) === 0 do
+        1
+      else
+        optimal[:g][n - 1][optimal_l]
+      end
+
+    # final result object
+    %{
+      password: password,
+      guesses: guesses,
+      guesses_log10: :math.log10(guesses),
+      sequence: optimal_match_sequence
+    }
+  end
+
+  defp optimal_match_sequence_fun(-1, _l, _optimal, optimal_match_sequence), do: optimal_match_sequence
+  defp optimal_match_sequence_fun(k, l, optimal, optimal_match_sequence) do
+    m = optimal[:m][k][l]
+    optimal_match_sequence_fun(
+      m[:i] - 1,
+      l - 1,
+      optimal,
+      [m | optimal_match_sequence]
+    )
   end
 
   defp estimate_guesses(%{guesses: guesses}, _password) when not is_nil(guesses) do
     guesses
   end
 
-  defp estimate_guesses(%{token: token, pattern: pattern, guesses: guesses} = match, password) do
+  defp estimate_guesses(%{token: token, pattern: pattern} = match, password) do
     token_len = String.length(token)
 
     min_guesses =
