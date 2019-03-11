@@ -4,14 +4,7 @@ defmodule ZXCVBN.Scoring do
   """
 
   import ZXCVBN.Utils
-
-  def calc_average_degree(graph) do
-    graph
-    |> Enum.reduce(0, fn {_key, neighbors}, sum ->
-      sum + length(neighbors)
-    end)
-    |> Kernel./(length(graph) * 1.0)
-  end
+  import ZXCVBN.AdjacencyGraphs, only: [adjacency_graph: 0]
 
   @bruteforce_cardinality 10
   @min_guesses_before_growing_sequence 10_000
@@ -200,6 +193,57 @@ defmodule ZXCVBN.Scoring do
     guesses = year_space * 365
 
     if Map.get(match, :separator), do: guesses * 4, else: guesses
+  end
+
+  @qwerty_graph adjacency_graph()[:qwerty]
+  @keypad_graph adjacency_graph()[:keypad]
+  @keyboard_average_degree calc_average_degree(@qwerty_graph)
+  # slightly different for keypad/mac keypad, but close enough
+  @keypad_average_degree calc_average_degree(@keypad_graph)
+  @keyboard_starting_positions map_size(@qwerty_graph)
+  @keypad_starting_positions map_size(@keypad_graph)
+
+  def spatial_guesses(%{graph: graph, token: token} = match) do
+    {s, d} =
+      if graph in ["qwerty", "dvorak"] do
+        {@keyboard_starting_positions, @keyboard_average_degree}
+      else
+        {@keypad_starting_positions, @keypad_average_degree}
+      end
+
+    l = String.length(token)
+    t = Map.get(match, :turns)
+
+    # estimate the number of possible patterns w/ length L or less with t turns
+    # or less.
+    guesses =
+      Enum.reduce(2..l, 0, fn i, guesses ->
+        possible_turns = min(t, i - 1)
+        1..possible_turns
+        |> Enum.map(fn j ->
+          nCk(i - 1, j - 1) * s * pow(d, j)
+        end)
+        |> Enum.sum()
+        |> Kernel.+(guesses)
+      end)
+
+    if s = Map.get(match, :shifted_count) do
+      u = l - s # unshifted count
+
+      if s === 0 or u === 0 do
+        guesses * 2
+      else
+        1..(min(s, u))
+        |> Enum.map(& nCk(s + u, &1))
+        |> Kernel.*(guesses)
+      end
+    else
+      guesses
+    end
+
+    # add extra guesses for shifted keys. (% instead of 5, A instead of a.)
+    # math is similar to extra guesses of l33t substitutions in dictionary
+    # matches.
   end
 
   @doc false
