@@ -34,35 +34,49 @@ defmodule ZXCVBN.Matching do
     s: ["$", "5"],
     t: ["+", "7"],
     x: ["%"],
-    z: ["2"],
+    z: ["2"]
   }
 
   @regexen ~r'19\d\d|200\d|201\d'
   @date_max_year 2_050
   @date_min_year 1_000
   @date_splits %{
-    "4": [  # for length-4 strings, eg 1191 or 9111, two ways to split:
-      [1, 2],  # 1 1 91 (2nd split starts at index 1, 3rd at index 2)
-      [2, 3],  # 91 1 1
+    # for length-4 strings, eg 1191 or 9111, two ways to split:
+    "4": [
+      # 1 1 91 (2nd split starts at index 1, 3rd at index 2)
+      [1, 2],
+      # 91 1 1
+      [2, 3]
     ],
     "5": [
-      [1, 3],  # 1 11 91
-      [2, 3],  # 11 1 91
+      # 1 11 91
+      [1, 3],
+      # 11 1 91
+      [2, 3]
     ],
     "6": [
-      [1, 2],  # 1 1 1991
-      [2, 4],  # 11 11 91
-      [4, 5],  # 1991 1 1
+      # 1 1 1991
+      [1, 2],
+      # 11 11 91
+      [2, 4],
+      # 1991 1 1
+      [4, 5]
     ],
     "7": [
-      [1, 3],  # 1 11 1991
-      [2, 3],  # 11 1 1991
-      [4, 5],  # 1991 1 11
-      [4, 6],  # 1991 11 1
+      # 1 11 1991
+      [1, 3],
+      # 11 1 1991
+      [2, 3],
+      # 1991 1 11
+      [4, 5],
+      # 1991 11 1
+      [4, 6]
     ],
     "8": [
-      [2, 4],  # 11 11 1991
-      [4, 6],  # 1991 11 11
+      # 11 11 1991
+      [2, 4],
+      # 1991 11 11
+      [4, 6]
     ]
   }
 
@@ -96,10 +110,12 @@ defmodule ZXCVBN.Matching do
     password_lower = String.downcase(password)
 
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
-    i <- 0..(length - 1), j <- i..(length - 1) do
+        i <- 0..(length - 1),
+        j <- i..(length - 1) do
       if (word = String.slice(password_lower, i, j + 1 - i)) in ranked_dict do
         token = String.slice(password_lower, i, j + 1 - i)
         rank = ranked_dict[word]
+
         %{
           pattern: 'dictionary',
           i: i,
@@ -145,14 +161,16 @@ defmodule ZXCVBN.Matching do
         if String.downcase(token) !== Map.get(match, :matched_word) do
           # subset of mappings in sub that are in use for this match
           token_graphemes = String.graphemes(token)
+
           match_sub =
             for {subbed_chr, chr} <- sub, subbed_chr in token_graphemes do
               {subbed_chr, chr}
             end
 
-          sub_display = Enum.map_join(match_sub, ", ", fn {k, v} ->
-            "#{k} -> #{v}"
-          end)
+          sub_display =
+            Enum.map_join(match_sub, ", ", fn {k, v} ->
+              "#{k} -> #{v}"
+            end)
 
           match
           |> Map.put(:l33t, true)
@@ -163,10 +181,14 @@ defmodule ZXCVBN.Matching do
       end
     end
     |> Enum.reject(fn
-      nil -> true
+      nil ->
+        true
+
       %{token: token} ->
         String.length(token) <= 1
-      _ -> false
+
+      _ ->
+        false
     end)
     |> _sort()
   end
@@ -175,15 +197,17 @@ defmodule ZXCVBN.Matching do
     password_chars = String.graphemes(password)
 
     for {letter, subs} <- table do
-      relevant_subs = Enum.filter(subs, fn sub ->
-        sub in password_chars
-      end)
+      relevant_subs =
+        Enum.filter(subs, fn sub ->
+          sub in password_chars
+        end)
 
       case relevant_subs do
         [_ | _] ->
           {letter, relevant_subs}
 
-        _ -> nil
+        _ ->
+          nil
       end
     end
     |> Enum.reject(&is_nil/1)
@@ -214,18 +238,20 @@ defmodule ZXCVBN.Matching do
   defp l33t_helper(table, [first_key | rest_keys], subs) do
     next_subs =
       for l33t_chr <- Map.get(table, first_key), sub <- subs do
-        dup_l33t_index = Enum.reduce(0..(length(sub) - 1), -1, fn i, dup_l33t_index ->
-          if get_in(sub, [i, 0]) === l33t_chr do
-            i
-          else
-            dup_l33t_index
-          end
-        end)
+        dup_l33t_index =
+          Enum.reduce(0..(length(sub) - 1), -1, fn i, dup_l33t_index ->
+            if get_in(sub, [i, 0]) === l33t_chr do
+              i
+            else
+              dup_l33t_index
+            end
+          end)
 
         if dup_l33t_index === -1 do
           "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes()
         else
-          sub_alternative = "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
+          sub_alternative =
+            "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
 
           [sub, sub_alternative]
         end
@@ -247,9 +273,10 @@ defmodule ZXCVBN.Matching do
         |> Enum.into(%{}, fn {v, k} -> {k, v} end)
         |> Enum.sort()
 
-      label = Enum.map_join(assoc, "-", fn {k, v} ->
-        "#{k},#{v}"
-      end)
+      label =
+        Enum.map_join(assoc, "-", fn {k, v} ->
+          "#{k},#{v}"
+        end)
 
       if label in members do
         {deduped, members}
@@ -259,7 +286,6 @@ defmodule ZXCVBN.Matching do
     end)
   end
 
-
   @greedy ~r'(.+)\1+'
   @lazy ~r'(.+?)\1+'
   @lazy_anchored ~r'^(.+?)\1+$'
@@ -267,6 +293,7 @@ defmodule ZXCVBN.Matching do
   @doc false
   def repeat_match(password, ranked_dictionaries) do
     length = String.length(password)
+
     Enum.reduce_while(0..length, [], fn i, matches ->
       {_, part} = String.split_at(password, i)
       greedy_match = Regex.run(@greedy, part)
@@ -301,22 +328,22 @@ defmodule ZXCVBN.Matching do
             end
 
           # recursively match and score the base string
-          base_analysis = Scoring.most_guessable_match_sequence(
-            base_token,
-            omnimatch(password, ranked_dictionaries)
-          )
+          base_analysis =
+            Scoring.most_guessable_match_sequence(
+              base_token,
+              omnimatch(password, ranked_dictionaries)
+            )
 
-          match =
-            %{
-              pattern: "repeat",
-              i: i,
-              j: j,
-              token: token,
-              base_token: base_token,
-              base_guesses: Map.get(base_analysis, :base_guesses),
-              base_matches: Map.get(base_analysis, :base_matches),
-              repeat_count: String.length(token) / String.length(base_token)
-            }
+          match = %{
+            pattern: "repeat",
+            i: i,
+            j: j,
+            token: token,
+            base_token: base_token,
+            base_guesses: Map.get(base_analysis, :base_guesses),
+            base_matches: Map.get(base_analysis, :base_matches),
+            repeat_count: String.length(token) / String.length(base_token)
+          }
 
           {:cont, match}
 
@@ -347,7 +374,8 @@ defmodule ZXCVBN.Matching do
       turns = 0
 
       shifted_count =
-        if graph_name in ~w(qwerty dvorak) and Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
+        if graph_name in ~w(qwerty dvorak) and
+             Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
           1
         else
           0
@@ -359,6 +387,7 @@ defmodule ZXCVBN.Matching do
 
   # TODO: finish impl
   def sequence_match("", _ranked_dictionaries), do: []
+
   def sequence_match(password, ranked_dictionaries) do
     # Identifies sequences by looking for repeated differences in unicode codepoint.
     # this allows skipping, such as 9753, and also matches some extended unicode sequences

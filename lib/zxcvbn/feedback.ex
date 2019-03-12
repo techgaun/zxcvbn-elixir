@@ -3,10 +3,11 @@ defmodule ZXCVBN.Feedback do
   Feedback module to produce warning and suggestions
   """
 
-  import ZXCVBN.Scoring, only: [
-    re_start_upper: 0,
-    re_all_upper: 0
-  ]
+  import ZXCVBN.Scoring,
+    only: [
+      re_start_upper: 0,
+      re_all_upper: 0
+    ]
 
   @default_feedback %{
     warning: "",
@@ -32,7 +33,9 @@ defmodule ZXCVBN.Feedback do
   def get_feedback(_score, sequence) do
     longest_match = Enum.max_by(sequence, &String.length/1)
 
-    %{warning: warning, suggestions: suggestions} = get_match_feedback(longest_match, length(sequence) === 1)
+    %{warning: warning, suggestions: suggestions} =
+      get_match_feedback(longest_match, length(sequence) === 1)
+
     extra_feedback = "Add another word or two. Uncommon words are better."
 
     %{
@@ -64,12 +67,14 @@ defmodule ZXCVBN.Feedback do
 
       :repeat ->
         base_token = Map.get(match, :base_token)
+
         warning =
           if String.length(base_token) === 1 do
             ~s(Repeats like "aaa" are easy to guess)
           else
             ~s(Repeats like "abcabcabc" are only slightly harder to guess than "abc")
           end
+
         %{
           warning: warning,
           suggestions: [
@@ -113,6 +118,7 @@ defmodule ZXCVBN.Feedback do
 
   def get_dictionary_match_feedback(match, sole_match?) do
     dictionary_name = Map.get(match, :dictionary_name)
+
     warning =
       cond do
         dictionary_name === "passwords" ->
@@ -193,5 +199,6 @@ defmodule ZXCVBN.Feedback do
   defp l33t_suggestion(%{l33t: l33t}) when not is_nil(l33t) do
     "Predictable substitutions like '@' instead of 'a' don't help very much"
   end
+
   defp l33t_suggestion(_), do: nil
 end

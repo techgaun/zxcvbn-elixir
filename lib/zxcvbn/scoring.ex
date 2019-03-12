@@ -18,10 +18,11 @@ defmodule ZXCVBN.Scoring do
   """
   def nCk(n, k) when k > n, do: 0
   def nCk(_n, 0), do: 1
+
   def nCk(n, k) do
     {r, _n} =
       Enum.reduce(1..(k + 1), {1, n}, fn d, {r, n} ->
-        {((r * n) / d), n - 1}
+        {r * n / d, n - 1}
       end)
 
     r
@@ -65,6 +66,7 @@ defmodule ZXCVBN.Scoring do
     n = String.length(password)
     # partition matches into sublists according to ending index j
     matches_by_j = List.duplicate([], n)
+
     matches_by_j =
       matches
       |> Enum.map(fn m ->
@@ -75,6 +77,7 @@ defmodule ZXCVBN.Scoring do
       end)
 
     placeholder = List.duplicate(%{}, 10)
+
     optimal = %{
       m: placeholder,
       pi: placeholder,
@@ -87,20 +90,21 @@ defmodule ZXCVBN.Scoring do
     update = fn m, l, optimal ->
       k = m[:j]
       pi = estimate_guesses(m, password)
+
       pi =
         if l > 1 do
           # we're considering a length-l sequence ending with match m:
           # obtain the product term in the minimization function by
           # multiplying m's guesses by the product of the length-(l-1)
           # sequence ending just before m, at m.i - 1.
-          pi * optimal[:pi][m[:i] -1][l - 1]
+          pi * optimal[:pi][m[:i] - 1][l - 1]
         else
           pi
         end
 
       # calculate the minimization func
       g = factorial(l) * pi
-      g = if exclude_additive?, do: g, else: g + pow(@min_guesses_before_growing_sequence, (l - 1))
+      g = if exclude_additive?, do: g, else: g + pow(@min_guesses_before_growing_sequence, l - 1)
 
       # update state if new best.
       # first see if any competing sequences covering this prefix, with l or
@@ -178,22 +182,23 @@ defmodule ZXCVBN.Scoring do
       l = nil
       g = :infinity
 
-      {l, _g} = Enum.reduce(optimal[:g][k], {l, g}, fn
-        {candidate_l, candidate_g}, {_l, g} when candidate_g < g ->
-          {candidate_l, candidate_g}
+      {l, _g} =
+        Enum.reduce(optimal[:g][k], {l, g}, fn
+          {candidate_l, candidate_g}, {_l, g} when candidate_g < g ->
+            {candidate_l, candidate_g}
 
-        _, {l, g} ->
-          {l, g}
-      end)
+          _, {l, g} ->
+            {l, g}
+        end)
 
       optimal_match_sequence_fun(k, l, optimal, [])
     end
 
-    Enum.reduce(0..n-1, optimal, fn k, optimal ->
+    Enum.reduce(0..(n - 1), optimal, fn k, optimal ->
       optimal =
         Enum.reduce(0..(matches_by_j[k] - 1), optimal, fn m, optimal ->
           if m[:i] > 0 do
-            Enum.reduce(0..(optimal[:m][m[:i] - 1]), optimal, fn l, optimal ->
+            Enum.reduce(0..optimal[:m][m[:i] - 1], optimal, fn l, optimal ->
               update.(m, String.to_integer(l) + 1, optimal)
             end)
           else
@@ -207,8 +212,8 @@ defmodule ZXCVBN.Scoring do
     optimal_match_sequence = unwind.(n, optimal)
     optimal_l = length(optimal_match_sequence)
 
+    # corner: empty password
     guesses =
-      # corner: empty password
       if String.length(password) === 0 do
         1
       else
@@ -224,9 +229,12 @@ defmodule ZXCVBN.Scoring do
     }
   end
 
-  defp optimal_match_sequence_fun(-1, _l, _optimal, optimal_match_sequence), do: optimal_match_sequence
+  defp optimal_match_sequence_fun(-1, _l, _optimal, optimal_match_sequence),
+    do: optimal_match_sequence
+
   defp optimal_match_sequence_fun(k, l, optimal, optimal_match_sequence) do
     m = optimal[:m][k][l]
+
     optimal_match_sequence_fun(
       m[:i] - 1,
       l - 1,
@@ -244,7 +252,9 @@ defmodule ZXCVBN.Scoring do
 
     min_guesses =
       if token_len < String.length(password) do
-        if token_len === 1, do: @min_submatch_guesses_single_char, else: @min_submatch_guesses_multi_char
+        if token_len === 1,
+          do: @min_submatch_guesses_single_char,
+          else: @min_submatch_guesses_multi_char
       else
         1
       end
@@ -314,6 +324,7 @@ defmodule ZXCVBN.Scoring do
   @doc false
   def regex_guesses(%{token: token} = match) do
     char_class_base = Map.get(match, :regex_name)
+
     cond do
       char_class_base in @char_class_bases_names ->
         pow(@char_class_bases[char_class_base], String.length(token))
@@ -374,6 +385,7 @@ defmodule ZXCVBN.Scoring do
     guesses =
       Enum.reduce(2..l, 0, fn i, guesses ->
         possible_turns = min(t, i - 1)
+
         1..possible_turns
         |> Enum.map(fn j ->
           nCk(i - 1, j - 1) * s * pow(d, j)
@@ -383,13 +395,14 @@ defmodule ZXCVBN.Scoring do
       end)
 
     if s = Map.get(match, :shifted_count) do
-      u = l - s # unshifted count
+      # unshifted count
+      u = l - s
 
       if s === 0 or u === 0 do
         guesses * 2
       else
-        1..(min(s, u))
-        |> Enum.map(& nCk(s + u, &1))
+        1..min(s, u)
+        |> Enum.map(&nCk(s + u, &1))
         |> Kernel.*(guesses)
       end
     else
@@ -411,10 +424,8 @@ defmodule ZXCVBN.Scoring do
 
     reversed_variations = if Map.get(match, :reversed, false), do: 2, else: 1
 
-    (
-      match[:base_guesses] * match[:uppercase_variations] *
-        match[:l33t_variations] * reversed_variations
-    )
+    match[:base_guesses] * match[:uppercase_variations] * match[:l33t_variations] *
+      reversed_variations
   end
 
   @start_upper ~r'^[A-Z][^A-Z]+$'
@@ -430,7 +441,7 @@ defmodule ZXCVBN.Scoring do
       Regex.match?(@all_lower, word) or String.downcase(word) === word ->
         1
 
-      Enum.any?([@start_upper, @end_upper, @all_upper], & Regex.match?(&1, word)) ->
+      Enum.any?([@start_upper, @end_upper, @all_upper], &Regex.match?(&1, word)) ->
         2
 
       true ->
@@ -440,10 +451,12 @@ defmodule ZXCVBN.Scoring do
           |> Enum.reduce({0, 0}, fn
             chr, {u, l} when chr in ?A..?Z ->
               {u + 1, l}
+
             chr, {u, l} when chr in ?a..?z ->
               {u, l + 1}
 
-            _chr, {u, l} -> {u, l}
+            _chr, {u, l} ->
+              {u, l}
           end)
 
         Enum.reduce(1..min(u, l), 0, fn i, variations ->
@@ -463,6 +476,7 @@ defmodule ZXCVBN.Scoring do
         |> Enum.reduce({0, 0}, fn
           chr, {s, u} when chr === subbed ->
             {s + 1, u}
+
           chr, {s, u} when chr === unsubbed ->
             {s, u + 1}
 
@@ -480,8 +494,9 @@ defmodule ZXCVBN.Scoring do
         # with aa44a, U = 3, S = 2, attacker needs to try unsubbed + one
         # sub + two subs
         p = min(u, s)
+
         1..p
-        |> Enum.map(& nCk(u + s, &1))
+        |> Enum.map(&nCk(u + s, &1))
         |> Enum.sum()
         |> Kernel.*(variations)
       end

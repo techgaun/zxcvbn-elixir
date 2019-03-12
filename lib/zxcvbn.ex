@@ -2,9 +2,10 @@ defmodule ZXCVBN do
   @moduledoc """
   """
 
-  import ZXCVBN.Utils, only: [
-    time: 0
-  ]
+  import ZXCVBN.Utils,
+    only: [
+      time: 0
+    ]
 
   alias ZXCVBN.{
     Feedback,
@@ -23,6 +24,7 @@ defmodule ZXCVBN do
       |> Map.put(:user_inputs, Matching.build_ranked_dict(user_inputs))
 
     matches = Matching.omnimatch(string, ranked_dictionaries)
+
     result =
       string
       |> Scoring.most_guessable_match_sequence(matches)

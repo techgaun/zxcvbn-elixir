@@ -23,7 +23,7 @@ defmodule ZXCVBN.Utils do
   defp do_factorial(n, fac), do: do_factorial(n - 1, fac * n)
 
   @spec pow(number, number) :: number
-  def  pow(n, k), do: pow(n, k, 1)
+  def pow(n, k), do: pow(n, k, 1)
   defp pow(_, 0, acc), do: acc
   defp pow(n, k, acc), do: pow(n, k - 1, n * acc)
 
@@ -31,7 +31,7 @@ defmodule ZXCVBN.Utils do
     graph
     |> Enum.reduce(0, fn {_key, neighbors}, sum ->
       neighbors
-      |> Stream.filter(& (not is_nil(&1)))
+      |> Stream.filter(&(not is_nil(&1)))
       |> Enum.count()
       |> Kernel.+(sum)
     end)
