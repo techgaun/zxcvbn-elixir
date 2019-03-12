@@ -171,99 +171,6 @@ defmodule ZXCVBN.Matching do
     |> _sort()
   end
 
-  @greedy ~r'(.+)\1+'
-  @lazy ~r'(.+?)\1+'
-  @lazy_anchored ~r'^(.+?)\1+$'
-  # repeats (aaa, abcabcabc) and sequences (abcdef)
-  defp repeat_match(password, ranked_dictionaries) do
-    length = String.length(password)
-    Enum.reduce_while(0..length, [], fn i, matches ->
-      [_, part] = String.split(password, i)
-      greedy_match = Regex.run(@greedy, part)
-      lazy_match = Regex.run(@lazy, part)
-
-      case greedy_match do
-        [greedy_first, _] ->
-          greedy_len = String.length(greedy_first)
-          [lazy_first, _] = lazy_match
-          lazy_len = String.length(lazy_first)
-
-          {{i, j}, token, base_token} =
-            if greedy_len > lazy_len do
-              # greedy beats lazy for 'aabaab'
-              #   greedy: [aabaab, aab]
-              #   lazy:   [aa,     a]
-              {
-                @greedy |> Regex.run(part, return: :index) |> hd(),
-                greedy_first,
-                # greedy's repeated string might itself be repeated, eg.
-                # aabaab in aabaabaabaab.
-                # run an anchored lazy match on greedy's repeated string
-                # to find the shortest repeated string
-                Regex.run(@lazy_anchored, greedy_first) |> List.last()
-              }
-            else
-              {
-                @lazy |> Regex.run(part, return: :index) |> hd(),
-                lazy_first,
-                List.last(lazy_match)
-              }
-            end
-
-          # recursively match and score the base string
-          base_analysis = most_guessable_match_sequence(
-            base_token,
-            omnimatch(password, ranked_dictionaries)
-          )
-
-          match =
-            %{
-              pattern: "repeat",
-              i: i,
-              j: j,
-              token: token,
-              base_token: base_token,
-              base_guesses: Map.get(base_analysis, :base_guesses),
-              base_matches: Map.get(base_analysis, :base_matches),
-              repeat_count: String.length(token) / String.length(base_token)
-            }
-
-          {:cont, match}
-
-        _ ->
-          {:halt, matches}
-      end
-    end)
-  end
-
-  @doc false
-  def spatial_match(password, graphs, ranked_dictionaries) do
-    for {graph_name, graph} <- graphs do
-      spatial_match_helper(password, graph, graph_name)
-    end
-    |> _sort()
-  end
-
-  @shifted_rx ~r'[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]'
-
-  def spatial_match_helper(password, graph, graph_name) do
-    length = String.length(password)
-    graphemes = String.graphemes(password)
-
-    for i <- 0..(length - 1) do
-      j = i + 1
-      last_direction = nil
-      turns = 0
-
-      shifted_count =
-        if graph_name in ~w(qwerty dvorak) and Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
-          1
-        else
-          0
-        end
-    end
-  end
-
   defp relevant_l33t_subtable(password, table) do
     password_chars = String.graphemes(password)
 
@@ -350,6 +257,150 @@ defmodule ZXCVBN.Matching do
         {[sub | deduped], [label | members]}
       end
     end)
+  end
+
+
+  @greedy ~r'(.+)\1+'
+  @lazy ~r'(.+?)\1+'
+  @lazy_anchored ~r'^(.+?)\1+$'
+  # repeats (aaa, abcabcabc) and sequences (abcdef)
+  @doc false
+  def repeat_match(password, ranked_dictionaries) do
+    length = String.length(password)
+    Enum.reduce_while(0..length, [], fn i, matches ->
+      {_, part} = String.split_at(password, i)
+      greedy_match = Regex.run(@greedy, part)
+      lazy_match = Regex.run(@lazy, part)
+
+      case greedy_match do
+        [greedy_first, _] ->
+          greedy_len = String.length(greedy_first)
+          [lazy_first, _] = lazy_match
+          lazy_len = String.length(lazy_first)
+
+          {{i, j}, token, base_token} =
+            if greedy_len > lazy_len do
+              # greedy beats lazy for 'aabaab'
+              #   greedy: [aabaab, aab]
+              #   lazy:   [aa,     a]
+              {
+                @greedy |> Regex.run(part, return: :index) |> hd(),
+                greedy_first,
+                # greedy's repeated string might itself be repeated, eg.
+                # aabaab in aabaabaabaab.
+                # run an anchored lazy match on greedy's repeated string
+                # to find the shortest repeated string
+                Regex.run(@lazy_anchored, greedy_first) |> List.last()
+              }
+            else
+              {
+                @lazy |> Regex.run(part, return: :index) |> hd(),
+                lazy_first,
+                List.last(lazy_match)
+              }
+            end
+
+          # recursively match and score the base string
+          base_analysis = Scoring.most_guessable_match_sequence(
+            base_token,
+            omnimatch(password, ranked_dictionaries)
+          )
+
+          match =
+            %{
+              pattern: "repeat",
+              i: i,
+              j: j,
+              token: token,
+              base_token: base_token,
+              base_guesses: Map.get(base_analysis, :base_guesses),
+              base_matches: Map.get(base_analysis, :base_matches),
+              repeat_count: String.length(token) / String.length(base_token)
+            }
+
+          {:cont, match}
+
+        _ ->
+          {:halt, matches}
+      end
+    end)
+  end
+
+  # TODO: finish impl
+  @doc false
+  def spatial_match(password, graphs \\ @adjacency_graphs, ranked_dictionaries) do
+    for {graph_name, graph} <- graphs do
+      spatial_match_helper(password, graph, graph_name)
+    end
+    |> _sort()
+  end
+
+  @shifted_rx ~r'[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]'
+
+  def spatial_match_helper(password, graph, graph_name) do
+    length = String.length(password)
+    graphemes = String.graphemes(password)
+
+    for i <- 0..(length - 1) do
+      j = i + 1
+      last_direction = nil
+      turns = 0
+
+      shifted_count =
+        if graph_name in ~w(qwerty dvorak) and Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
+          1
+        else
+          0
+        end
+    end
+
+    []
+  end
+
+  # TODO: finish impl
+  def sequence_match("", _ranked_dictionaries), do: []
+  def sequence_match(password, ranked_dictionaries) do
+    # Identifies sequences by looking for repeated differences in unicode codepoint.
+    # this allows skipping, such as 9753, and also matches some extended unicode sequences
+    # such as Greek and Cyrillic alphabets.
+    #
+    # for example, consider the input 'abcdb975zy'
+    #
+    # password: a   b   c   d   b    9   7   5   z   y
+    # index:    0   1   2   3   4    5   6   7   8   9
+    # delta:      1   1   1  -2  -41  -2  -2  69   1
+    #
+    # expected result:
+    # [(i, j, delta), ...] = [(0, 3, 1), (5, 7, -2), (8, 9, 1)]
+    []
+  end
+
+  # TODO: finish impl
+  def regex_match(password, regexen \\ @regexen, ranked_dictionaries) do
+    []
+  end
+
+  # TODO: finish impl
+  def date_match(password, ranked_dictionaries) do
+    # a "date" is recognized as:
+    #   any 3-tuple that starts or ends with a 2- or 4-digit year,
+    #   with 2 or 0 separator chars (1.1.91 or 1191),
+    #   maybe zero-padded (01-01-91 vs 1-1-91),
+    #   a month between 1 and 12,
+    #   a day between 1 and 31.
+    #
+    # note: this isn't true date parsing in that "feb 31st" is allowed,
+    # this doesn't check for leap years, etc.
+    #
+    # recipe:
+    # start with regex to find maybe-dates, then attempt to map the integers
+    # onto month-day-year to filter the maybe-dates into dates.
+    # finally, remove matches that are substrings of other matches to reduce noise.
+    #
+    # note: instead of using a lazy or greedy regex to find many dates over the full string,
+    # this uses a ^...$ regex against every substring of the password -- less performant but leads
+    # to every possible date match.
+    []
   end
 
   # internal sorting
