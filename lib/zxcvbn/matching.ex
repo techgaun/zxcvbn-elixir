@@ -236,6 +236,34 @@ defmodule ZXCVBN.Matching do
     end)
   end
 
+  @doc false
+  def spatial_match(password, graphs, ranked_dictionaries) do
+    for {graph_name, graph} <- graphs do
+      spatial_match_helper(password, graph, graph_name)
+    end
+    |> _sort()
+  end
+
+  @shifted_rx ~r'[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]'
+
+  def spatial_match_helper(password, graph, graph_name) do
+    length = String.length(password)
+    graphemes = String.graphemes(password)
+
+    for i <- 0..(length - 1) do
+      j = i + 1
+      last_direction = nil
+      turns = 0
+
+      shifted_count =
+        if graph_name in ~w(qwerty dvorak) and Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
+          1
+        else
+          0
+        end
+    end
+  end
+
   defp relevant_l33t_subtable(password, table) do
     password_chars = String.graphemes(password)
 
