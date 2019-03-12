@@ -10,7 +10,7 @@ defmodule ZXCVBN.Matching do
   @frequency_lists frequency_lists()
   @adjacency_graphs adjacency_graph()
 
-  defp build_ranked_dict(ordered_list) do
+  def build_ranked_dict(ordered_list) do
     ordered_list
     |> Enum.with_index(1)
     |> Enum.into(%{})
