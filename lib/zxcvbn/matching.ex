@@ -5,6 +5,8 @@ defmodule ZXCVBN.Matching do
   import ZXCVBN.AdjacencyGraphs, only: [adjacency_graph: 0]
   import ZXCVBN.FrequencyLists, only: [frequency_lists: 0]
 
+  alias ZXCVBN.Scoring
+
   @frequency_lists frequency_lists()
   @adjacency_graphs adjacency_graph()
 
@@ -167,6 +169,71 @@ defmodule ZXCVBN.Matching do
       _ -> false
     end)
     |> _sort()
+  end
+
+  @greedy ~r'(.+)\1+'
+  @lazy ~r'(.+?)\1+'
+  @lazy_anchored ~r'^(.+?)\1+$'
+  # repeats (aaa, abcabcabc) and sequences (abcdef)
+  defp repeat_match(password, ranked_dictionaries) do
+    length = String.length(password)
+    Enum.reduce_while(0..length, [], fn i, matches ->
+      [_, part] = String.split(password, i)
+      greedy_match = Regex.run(@greedy, part)
+      lazy_match = Regex.run(@lazy, part)
+
+      case greedy_match do
+        [greedy_first, _] ->
+          greedy_len = String.length(greedy_first)
+          [lazy_first, _] = lazy_match
+          lazy_len = String.length(lazy_first)
+
+          {{i, j}, token, base_token} =
+            if greedy_len > lazy_len do
+              # greedy beats lazy for 'aabaab'
+              #   greedy: [aabaab, aab]
+              #   lazy:   [aa,     a]
+              {
+                @greedy |> Regex.run(part, return: :index) |> hd(),
+                greedy_first,
+                # greedy's repeated string might itself be repeated, eg.
+                # aabaab in aabaabaabaab.
+                # run an anchored lazy match on greedy's repeated string
+                # to find the shortest repeated string
+                Regex.run(@lazy_anchored, greedy_first) |> List.last()
+              }
+            else
+              {
+                @lazy |> Regex.run(part, return: :index) |> hd(),
+                lazy_first,
+                List.last(lazy_match)
+              }
+            end
+
+          # recursively match and score the base string
+          base_analysis = most_guessable_match_sequence(
+            base_token,
+            omnimatch(password, ranked_dictionaries)
+          )
+
+          match =
+            %{
+              pattern: "repeat",
+              i: i,
+              j: j,
+              token: token,
+              base_token: base_token,
+              base_guesses: Map.get(base_analysis, :base_guesses),
+              base_matches: Map.get(base_analysis, :base_matches),
+              repeat_count: String.length(token) / String.length(base_token)
+            }
+
+          {:cont, match}
+
+        _ ->
+          {:halt, matches}
+      end
+    end)
   end
 
   defp relevant_l33t_subtable(password, table) do
