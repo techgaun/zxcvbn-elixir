@@ -63,20 +63,20 @@ defmodule ZXCVBN.Scoring do
   ------------------------------------------------------------------------------
   """
   def most_guessable_match_sequence(password, matches, exclude_additive? \\ false) do
-    n = String.length(password)
+    n = String.length(password) - 1
     # partition matches into sublists according to ending index j
-    matches_by_j = List.duplicate([], n)
+    matches_by_j = Enum.into(0..n, %{}, & {&1, []})
 
     matches_by_j =
       matches
-      |> Enum.map(fn m ->
-        List.update_at(matches_by_j, m[:j], &(&1 ++ [m]))
+      |> Enum.reduce(matches_by_j, fn m, matches_by_j ->
+        Map.update(matches_by_j, m[:j], [], &(&1 ++ [m]))
       end)
-      |> Enum.map(fn list ->
-        Enum.sort(list, &(&1[:i] >= &2[:i]))
+      |> Enum.into(%{}, fn {k, list} ->
+        {k, Enum.sort(list, &(&1[:i] >= &2[:i]))}
       end)
 
-    placeholder = List.duplicate(%{}, 10)
+    placeholder = Enum.into(0..n, %{}, & {&1, %{}})
 
     optimal = %{
       m: placeholder,
@@ -135,40 +135,28 @@ defmodule ZXCVBN.Scoring do
       end
     end
 
-    # helper: make bruteforce match objects spanning i to j, inclusive.
-    make_bruteforce_match = fn i, j, password ->
-      %{
-        pattern: :bruteforce,
-        token: String.slice(password, i, String.length(password) - j),
-        i: i,
-        j: j
-      }
-    end
-
     # helper: evaluate bruteforce matches ending at k.
     bruteforce_update = fn k, password, optimal ->
       # see if a single bruteforce match spanning the k-prefix is optimal.
-      m = make_bruteforce_match.(0, k, password)
+      m = make_bruteforce_match(0, k, password)
       optimal = update.(m, 1, optimal)
 
-      Enum.reduce_while(1..k, optimal, fn i, optimal ->
+      Enum.reduce(1..(k + 1), optimal, fn i, optimal ->
         # generate k bruteforce matches, spanning from (i=1, j=k) up to
         # (i=k, j=k). see if adding these new matches to any of the
         # sequences in optimal[i-1] leads to new bests.
-        m = make_bruteforce_match.(i, k, password)
+        m = make_bruteforce_match(i, k, password)
 
-        Enum.reduce_while(optimal[:m][i - 1], optimal, fn {l, last_m}, optimal ->
-          l = String.to_integer(l)
-
+        Enum.reduce(optimal[:m][i - 1], optimal, fn {l, last_m}, optimal ->
           # corner: an optimal sequence will never have two adjacent
           # bruteforce matches. it is strictly better to have a single
           # bruteforce match spanning the same region: same contribution
           # to the guess product with a lower length.
           # --> safe to skip those cases.
           if Map.get(last_m, :pattern) === :bruteforce do
-            {:halt, optimal}
+            optimal
           else
-            {:cont, update.(m, l + 1, optimal)}
+            update.(m, l + 1, optimal)
           end
         end)
       end)
@@ -194,20 +182,21 @@ defmodule ZXCVBN.Scoring do
       optimal_match_sequence_fun(k, l, optimal, [])
     end
 
-    Enum.reduce(0..(n - 1), optimal, fn k, optimal ->
-      optimal =
-        Enum.reduce(0..(matches_by_j[k] - 1), optimal, fn m, optimal ->
-          if m[:i] > 0 do
-            Enum.reduce(0..optimal[:m][m[:i] - 1], optimal, fn l, optimal ->
-              update.(m, String.to_integer(l) + 1, optimal)
-            end)
-          else
-            update.(m, 1, optimal)
-          end
-        end)
+    optimal =
+      Enum.reduce(0..(n - 1), optimal, fn k, optimal ->
+        optimal =
+          Enum.reduce(matches_by_j[k], optimal, fn m, optimal ->
+            if m[:i] > 0 do
+              Enum.reduce(0..optimal[:m][m[:i] - 1], optimal, fn l, optimal ->
+                update.(m, l + 1, optimal)
+              end)
+            else
+              update.(m, 1, optimal)
+            end
+          end)
 
-      bruteforce_update.(k, password, optimal)
-    end)
+        bruteforce_update.(k, password, optimal)
+      end)
 
     optimal_match_sequence = unwind.(n, optimal)
     optimal_l = length(optimal_match_sequence)
@@ -504,4 +493,15 @@ defmodule ZXCVBN.Scoring do
   end
 
   defp l33t_variations(_match), do: 1
+
+  ### helper functions for `most_guessable_match_sequence`
+  # helper: make bruteforce match objects spanning i to j, inclusive.
+  defp make_bruteforce_match(i, j, password) do
+    %{
+      pattern: :bruteforce,
+      token: String.slice(password, i, String.length(password) - j),
+      i: i,
+      j: j
+    }
+  end
 end

@@ -31,7 +31,7 @@ defmodule ZXCVBN.Feedback do
   end
 
   def get_feedback(_score, sequence) do
-    longest_match = Enum.max_by(sequence, &String.length/1)
+    longest_match = Enum.max_by(sequence, fn %{token: token} -> String.length(token) end)
 
     %{warning: warning, suggestions: suggestions} =
       get_match_feedback(longest_match, length(sequence) === 1)
@@ -100,10 +100,7 @@ defmodule ZXCVBN.Feedback do
             ]
           }
         else
-          %{
-            warning: "",
-            suggestions: []
-          }
+          @empty_feedback
         end
 
       :date ->
@@ -113,6 +110,9 @@ defmodule ZXCVBN.Feedback do
             "Avoid dates and years that are associated with you"
           ]
         }
+
+      :bruteforce ->
+        @empty_feedback
     end
   end
 
