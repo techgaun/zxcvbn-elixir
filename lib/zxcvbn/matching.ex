@@ -85,7 +85,7 @@ defmodule ZXCVBN.Matching do
     :reverse_dictionary,
     :l33t,
     :spatial,
-    :repeat,
+    # :repeat,
     :sequence,
     :regex,
     :date
@@ -98,6 +98,7 @@ defmodule ZXCVBN.Matching do
     @matcher_types
     |> Enum.reduce([], fn matcher_type, matches ->
       [apply(__MODULE__, :"#{matcher_type}_match", [password, ranked_dictionaries]) | matches]
+      |> IO.inspect(label: "Match with #{matcher_type}")
     end)
     |> List.flatten()
     |> _sort()
@@ -152,6 +153,7 @@ defmodule ZXCVBN.Matching do
 
   @doc false
   def l33t_match(password, ranked_dictionaries, l33t_table \\ @l33t_table) do
+    # IO.inspect enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)), label: "HELLO"
     for sub <- enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)) do
       subbed_password = translate(password, sub)
 
@@ -217,11 +219,12 @@ defmodule ZXCVBN.Matching do
   defp enumerate_l33t_subs(table) do
     keys = Map.keys(table)
 
-    subs = l33t_helper(table, keys, [[]])
+    l33t_helper(table, keys, [%{}])
+    # subs = l33t_helper(table, keys, [%{}])
 
-    for sub <- subs, {l33t_chr, chr} <- sub, into: %{} do
-      {l33t_chr, chr}
-    end
+    # for sub <- subs, {l33t_chr, chr} <- sub, into: [] do
+    #   {l33t_chr, chr}
+    # end
   end
 
   defp translate(string, chr_map) do
@@ -239,7 +242,7 @@ defmodule ZXCVBN.Matching do
     next_subs =
       for l33t_chr <- Map.get(table, first_key), sub <- subs do
         dup_l33t_index =
-          Enum.reduce(0..(length(sub) - 1), -1, fn i, dup_l33t_index ->
+          Enum.reduce(0..(map_size(sub) - 1), -1, fn i, dup_l33t_index ->
             if get_in(sub, [i, 0]) === l33t_chr do
               i
             else
@@ -248,12 +251,17 @@ defmodule ZXCVBN.Matching do
           end)
 
         if dup_l33t_index === -1 do
-          "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes()
+          [Map.put(sub, l33t_chr, first_key)]
+          # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes()
         else
           sub_alternative =
-            "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
+            sub
+            |> Map.drop([dup_l33t_index])
+            |> Map.put(l33t_chr, first_key)
+            # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
 
           [sub, sub_alternative]
+          |> IO.inspect(label: "ALT")
         end
       end
       |> List.flatten()
@@ -267,23 +275,26 @@ defmodule ZXCVBN.Matching do
   end
 
   def dedup(subs) do
-    Enum.reduce(subs, {[], []}, fn sub, {deduped, members} ->
-      assoc =
-        sub
-        |> Enum.into(%{}, fn {v, k} -> {k, v} end)
-        |> Enum.sort()
+    {deduped, _} =
+      Enum.reduce(subs, {[], []}, fn sub, {deduped, members} ->
+        assoc =
+          sub
+          |> Enum.into(%{}, fn {v, k} -> {k, v} end)
+          |> Enum.sort()
 
-      label =
-        Enum.map_join(assoc, "-", fn {k, v} ->
-          "#{k},#{v}"
-        end)
+        label =
+          Enum.map_join(assoc, "-", fn {k, v} ->
+            "#{k},#{v}"
+          end)
 
-      if label in members do
-        {deduped, members}
-      else
-        {[sub | deduped], [label | members]}
-      end
-    end)
+        if label in members do
+          {deduped, members}
+        else
+          {[sub | deduped], [label | members]}
+        end
+      end)
+
+    deduped
   end
 
   @greedy ~r'(.+)\1+'
