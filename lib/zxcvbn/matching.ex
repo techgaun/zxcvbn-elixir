@@ -16,7 +16,7 @@ defmodule ZXCVBN.Matching do
     |> Enum.into(%{})
   end
 
-  def add_frequency_lists(ranked_dictionaries, frequency_lists) do
+  def add_frequency_lists(ranked_dictionaries, frequency_lists \\ @frequency_lists) do
     Enum.reduce(frequency_lists, ranked_dictionaries, fn {name, lst}, ranked_dictionaries ->
       Map.put(ranked_dictionaries, name, build_ranked_dict(lst))
     end)
@@ -82,13 +82,13 @@ defmodule ZXCVBN.Matching do
 
   @matcher_types [
     :dictionary,
-    :reverse_dictionary,
-    :l33t,
-    :spatial,
+    # :reverse_dictionary,
+    # :l33t,
+    # :spatial,
     # :repeat,
-    :sequence,
-    :regex,
-    :date
+    # :sequence,
+    # :regex,
+    # :date
   ]
 
   @doc """
@@ -98,7 +98,6 @@ defmodule ZXCVBN.Matching do
     @matcher_types
     |> Enum.reduce([], fn matcher_type, matches ->
       [apply(__MODULE__, :"#{matcher_type}_match", [password, ranked_dictionaries]) | matches]
-      |> IO.inspect(label: "Match with #{matcher_type}")
     end)
     |> List.flatten()
     |> _sort()
@@ -113,12 +112,13 @@ defmodule ZXCVBN.Matching do
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
         j <- i..(length - 1) do
-      if (word = String.slice(password_lower, i, j + 1 - i)) in ranked_dict do
+      ranked_dict_values = Map.keys(ranked_dict)
+      if (word = String.slice(password_lower, i, j + 1 - i)) in ranked_dict_values do
         token = String.slice(password_lower, i, j + 1 - i)
         rank = ranked_dict[word]
 
         %{
-          pattern: 'dictionary',
+          pattern: :dictionary,
           i: i,
           j: j,
           token: token,
@@ -346,7 +346,7 @@ defmodule ZXCVBN.Matching do
             )
 
           match = %{
-            pattern: "repeat",
+            pattern: :repeat,
             i: i,
             j: j,
             token: token,

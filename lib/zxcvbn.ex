@@ -14,13 +14,14 @@ defmodule ZXCVBN do
     TimeEstimates
   }
 
-  @spec zxcvbn(String.t(), [String.t()]) :: :ok
+  @spec zxcvbn(String.t(), [String.t()]) :: map
   def zxcvbn(string, user_inputs \\ []) do
     start = time()
     user_inputs = normalize_inputs(user_inputs)
 
     ranked_dictionaries =
       Map.new()
+      |> Matching.add_frequency_lists()
       |> Map.put(:user_inputs, Matching.build_ranked_dict(user_inputs))
 
     matches = Matching.omnimatch(string, ranked_dictionaries)

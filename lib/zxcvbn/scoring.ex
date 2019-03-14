@@ -63,9 +63,10 @@ defmodule ZXCVBN.Scoring do
   ------------------------------------------------------------------------------
   """
   def most_guessable_match_sequence(password, matches, exclude_additive? \\ false) do
-    n = String.length(password) - 1
+    n = String.length(password)
+    n_minus_one = n - 1
     # partition matches into sublists according to ending index j
-    matches_by_j = Enum.into(0..n, %{}, & {&1, []})
+    matches_by_j = Enum.into(0..n_minus_one, %{}, & {&1, []})
 
     matches_by_j =
       matches
@@ -76,7 +77,7 @@ defmodule ZXCVBN.Scoring do
         {k, Enum.sort(list, &(&1[:i] >= &2[:i]))}
       end)
 
-    placeholder = Enum.into(0..n, %{}, & {&1, %{}})
+    placeholder = Enum.into(0..n_minus_one, %{}, & {&1, %{}})
 
     optimal = %{
       m: placeholder,
