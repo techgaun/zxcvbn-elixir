@@ -252,18 +252,25 @@ defmodule ZXCVBN.Scoring do
         1
       end
 
-    {match, guesses} = apply(__MODULE__, :"#{pattern}_guesses", [match])
+    {match, guesses} =
+      case apply(__MODULE__, :"#{pattern}_guesses", [match]) do
+        {match, guesses} -> {match, guesses}
+        guesses -> {match, guesses}
+      end
+
     guesses = max(guesses, min_guesses)
-    guesses_log10 = :math.log10(guesses) # seems to be calculated but unused
+    guesses_log10 = :math.log10(guesses)
+
     match =
       match
       |> Map.put(:guesses, guesses)
       |> Map.put(:guesses_log10, guesses_log10)
+
     {match, guesses}
   end
 
   @doc false
-  def bruteforce_guesses(%{token: token} = match) do
+  def bruteforce_guesses(%{token: token} = _match) do
     token_len = String.length(token)
     guesses = pow(@bruteforce_cardinality, token_len)
     # small detail: make bruteforce matches at minimum one guess bigger than
@@ -276,7 +283,7 @@ defmodule ZXCVBN.Scoring do
         @min_submatch_guesses_multi_char + 1
       end
 
-    {match, max(guesses, min_guesses)}
+    max(guesses, min_guesses)
   end
 
   @doc false
