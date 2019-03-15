@@ -191,7 +191,7 @@ defmodule ZXCVBN.Scoring do
         optimal =
           Enum.reduce(matches_by_j[k], optimal, fn m, optimal ->
             if m[:i] > 0 do
-              Enum.reduce(0..optimal[:m][m[:i] - 1], optimal, fn l, optimal ->
+              Enum.reduce(optimal[:m][m[:i] - 1], optimal, fn {l, _}, optimal ->
                 update.(m, l + 1, optimal)
               end)
             else
@@ -254,7 +254,11 @@ defmodule ZXCVBN.Scoring do
 
     {match, guesses} = apply(__MODULE__, :"#{pattern}_guesses", [match])
     guesses = max(guesses, min_guesses)
-    # guesses_log10 = :math.log10(guesses) # seems to be calculated but unused
+    guesses_log10 = :math.log10(guesses) # seems to be calculated but unused
+    match =
+      match
+      |> Map.put(:guesses, guesses)
+      |> Map.put(:guesses_log10, guesses_log10)
     {match, guesses}
   end
 
