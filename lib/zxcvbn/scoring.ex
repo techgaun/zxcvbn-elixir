@@ -90,7 +90,7 @@ defmodule ZXCVBN.Scoring do
     # so.
     update = fn m, l, optimal ->
       k = m[:j]
-      pi = estimate_guesses(m, password)
+      {m, pi} = estimate_guesses(m, password)
 
       pi =
         if l > 1 do
@@ -142,7 +142,10 @@ defmodule ZXCVBN.Scoring do
       m = make_bruteforce_match(0, k, password)
       optimal = update.(m, 1, optimal)
 
-      Enum.reduce(1..(k + 1), optimal, fn i, optimal ->
+      1
+      |> Stream.iterate(&(&1 + 1))
+      |> Enum.take(k)
+      |> Enum.reduce(optimal, fn i, optimal ->
         # generate k bruteforce matches, spanning from (i=1, j=k) up to
         # (i=k, j=k). see if adding these new matches to any of the
         # sequences in optimal[i-1] leads to new bests.
@@ -233,8 +236,8 @@ defmodule ZXCVBN.Scoring do
     )
   end
 
-  defp estimate_guesses(%{guesses: guesses}, _password) when not is_nil(guesses) do
-    guesses
+  defp estimate_guesses(%{guesses: guesses} = match, _password) when not is_nil(guesses) do
+    {match, guesses}
   end
 
   defp estimate_guesses(%{token: token, pattern: pattern} = match, password) do
@@ -249,14 +252,14 @@ defmodule ZXCVBN.Scoring do
         1
       end
 
-    guesses = apply(__MODULE__, :"#{pattern}_guesses", [match])
+    {match, guesses} = apply(__MODULE__, :"#{pattern}_guesses", [match])
     guesses = max(guesses, min_guesses)
     # guesses_log10 = :math.log10(guesses) # seems to be calculated but unused
-    guesses
+    {match, guesses}
   end
 
   @doc false
-  def bruteforce_guesses(%{token: token} = _match) do
+  def bruteforce_guesses(%{token: token} = match) do
     token_len = String.length(token)
     guesses = pow(@bruteforce_cardinality, token_len)
     # small detail: make bruteforce matches at minimum one guess bigger than
@@ -269,7 +272,7 @@ defmodule ZXCVBN.Scoring do
         @min_submatch_guesses_multi_char + 1
       end
 
-    max(guesses, min_guesses)
+    {match, max(guesses, min_guesses)}
   end
 
   @doc false
@@ -414,8 +417,11 @@ defmodule ZXCVBN.Scoring do
 
     reversed_variations = if Map.get(match, :reversed, false), do: 2, else: 1
 
-    match[:base_guesses] * match[:uppercase_variations] * match[:l33t_variations] *
+    {
+      match,
+      match[:base_guesses] * match[:uppercase_variations] * match[:l33t_variations] *
       reversed_variations
+    }
   end
 
   @start_upper ~r'^[A-Z][^A-Z]+$'
@@ -500,7 +506,7 @@ defmodule ZXCVBN.Scoring do
   defp make_bruteforce_match(i, j, password) do
     %{
       pattern: :bruteforce,
-      token: String.slice(password, i, String.length(password) - j),
+      token: String.slice(password, i..j),
       i: i,
       j: j
     }
