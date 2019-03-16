@@ -82,9 +82,9 @@ defmodule ZXCVBN.Matching do
 
   @matcher_types [
     :dictionary,
-    # :reverse_dictionary,
-    # :l33t,
-    # :spatial,
+    :reverse_dictionary,
+    :l33t,
+    :spatial,
     # :repeat,
     # :sequence,
     # :regex,
@@ -153,7 +153,6 @@ defmodule ZXCVBN.Matching do
 
   @doc false
   def l33t_match(password, ranked_dictionaries, l33t_table \\ @l33t_table) do
-    # IO.inspect enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)), label: "HELLO"
     for sub <- enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)) do
       subbed_password = translate(password, sub)
 
@@ -386,7 +385,7 @@ defmodule ZXCVBN.Matching do
 
       shifted_count =
         if graph_name in ~w(qwerty dvorak) and
-             Regex.match?(@shifted_rx, String.slice(password, i, 1)) do
+             Regex.match?(@shifted_rx, String.at(password, i)) do
           1
         else
           0
@@ -394,6 +393,22 @@ defmodule ZXCVBN.Matching do
     end
 
     []
+  end
+
+  defp spatial_loop(password, j, graph) do
+    prev_char = String.at(password, j - 1)
+    found = false
+    found_direction = -1
+    cur_direction = -1
+
+    adjacents = if is_map(graph), do: Map.get(graph, prev_char, []), else: []
+    length = String.length(password)
+
+    # consider growing pattern by one character if j hasn't gone
+    # over the edge.
+    if j < length do
+      cur_char = String.at(password, j)
+    end
   end
 
   # TODO: finish impl
