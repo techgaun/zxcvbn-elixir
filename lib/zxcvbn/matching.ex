@@ -365,7 +365,7 @@ defmodule ZXCVBN.Matching do
 
   # TODO: finish impl
   @doc false
-  def spatial_match(password, graphs \\ @adjacency_graphs, ranked_dictionaries) do
+  def spatial_match(password, graphs \\ @adjacency_graphs, _ranked_dictionaries) do
     for {graph_name, graph} <- graphs do
       spatial_match_helper(password, graph, graph_name)
     end
@@ -376,38 +376,104 @@ defmodule ZXCVBN.Matching do
 
   def spatial_match_helper(password, graph, graph_name) do
     length = String.length(password)
-    graphemes = String.graphemes(password)
 
     for i <- 0..(length - 1) do
       j = i + 1
-      last_direction = nil
-      turns = 0
 
       shifted_count =
         if graph_name in ~w(qwerty dvorak) and
              Regex.match?(@shifted_rx, String.at(password, i)) do
+          # initial character is shifted
           1
         else
           0
         end
-    end
 
-    []
+      spatial_loop(password, i, j, graph, graph_name, shifted_count, [])
+    end
+    |> List.flatten()
   end
 
-  defp spatial_loop(password, j, graph) do
+  defp spatial_loop(password, i, j, graph, graph_name, shifted_count, matches, turns \\ 0, last_direction \\ nil) do
     prev_char = String.at(password, j - 1)
     found = false
-    found_direction = -1
     cur_direction = -1
 
-    adjacents = if is_map(graph), do: Map.get(graph, prev_char, []), else: []
+    adjacents =
+      graph
+      |> is_map()
+      |> if do
+        Map.get(graph, prev_char, [])
+      else
+        []
+      end
     length = String.length(password)
 
     # consider growing pattern by one character if j hasn't gone
     # over the edge.
-    if j < length do
-      cur_char = String.at(password, j)
+    {_cur_direction, found, last_direction, turns, shifted_count} =
+      if j < length do
+        cur_char = String.at(password, j)
+        Enum.reduce_while(
+          adjacents,
+          {cur_direction, found, nil, turns, shifted_count},
+          fn adj, {cur_direction, found, last_direction, turns, shifted_count} = tuple ->
+            IO.inspect tuple, label: "WHAT TUPLE"
+            cur_direction = cur_direction + 1
+            if is_binary(adj) and cur_char in String.graphemes(adj) do
+              found = true
+              found_direction = cur_direction
+              cur_char_index = adj |> :binary.match(cur_char) |> elem(0)
+              # index 1 in the adjacency means the key is shifted,
+              # 0 means unshifted: A vs a, % vs 5, etc.
+              # for example, 'q' is adjacent to the entry '2@'.
+              # @ is shifted w/ index 1, 2 is unshifted.
+              shifted_count = if cur_char_index === 1, do: shifted_count + 1, else: shifted_count
+
+              {turns, last_direction} =
+                if last_direction !== found_direction do
+                  IO.inspect last_direction, label: "LAST"
+                  IO.inspect found_direction, label: "found"
+                  # adding a turn is correct even in the initial case when last_direction is null:
+                  # every spatial pattern starts with a turn.
+                  {turns + 1, found_direction}
+                else
+                  {turns, found_direction}
+                end
+
+                |> IO.inspect(label: "RESULT")
+              {:halt, {cur_direction, found, last_direction, turns, shifted_count}}
+            else
+              {:cont, {cur_direction, found, last_direction, turns, shifted_count}}
+            end
+          end
+        )
+      else
+        {cur_direction, found, last_direction, turns, shifted_count}
+      end
+
+    if found do
+      # if the current pattern continued, extend j and try to grow again
+      spatial_loop(password, i, j + 1, graph, graph_name, shifted_count, matches, turns, last_direction)
+    else
+      # don't consider length 1 or 2 chains.
+      if j - i > 2 do
+        # ...and then start a new search for the rest of the password.
+        [
+          %{
+            pattern: :spatial,
+            i: i,
+            j: j - 1,
+            token: String.slice(password, i, j),
+            graph: graph_name,
+            turns: turns,
+            shifted_count: shifted_count
+          }
+          | matches
+        ]
+      else
+        matches
+      end
     end
   end
 

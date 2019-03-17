@@ -388,7 +388,7 @@ defmodule ZXCVBN.Scoring do
     # or less.
     guesses =
       Enum.reduce(2..l, 0, fn i, guesses ->
-        possible_turns = min(t, i - 1)
+        possible_turns = min(t, i - 1) + 1
 
         1..possible_turns
         |> Enum.map(fn j ->
@@ -406,7 +406,8 @@ defmodule ZXCVBN.Scoring do
         guesses * 2
       else
         1..min(s, u)
-        |> Enum.map(&nCk(s + u, &1))
+        |> Stream.map(&nCk(s + u, &1))
+        |> Enum.sum()
         |> Kernel.*(guesses)
       end
     else
