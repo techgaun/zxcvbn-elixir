@@ -375,7 +375,7 @@ defmodule ZXCVBN.Scoring do
 
   def spatial_guesses(%{graph: graph, token: token} = match) do
     {s, d} =
-      if graph in ["qwerty", "dvorak"] do
+      if graph in [:qwerty, :dvorak] do
         {@keyboard_starting_positions, @keyboard_average_degree}
       else
         {@keypad_starting_positions, @keypad_average_degree}
@@ -390,7 +390,9 @@ defmodule ZXCVBN.Scoring do
       Enum.reduce(2..l, 0, fn i, guesses ->
         possible_turns = min(t, i - 1) + 1
 
-        1..possible_turns
+        1
+        |> Stream.iterate(&(&1 + 1))
+        |> Enum.take(possible_turns - 1)
         |> Enum.map(fn j ->
           nCk(i - 1, j - 1) * s * pow(d, j)
         end)
@@ -398,7 +400,7 @@ defmodule ZXCVBN.Scoring do
         |> Kernel.+(guesses)
       end)
 
-    if s = Map.get(match, :shifted_count) do
+    if (s = Map.get(match, :shifted_count, 0)) > 0 and is_number(s) do
       # unshifted count
       u = l - s
 
