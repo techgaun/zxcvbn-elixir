@@ -260,7 +260,6 @@ defmodule ZXCVBN.Matching do
             # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
 
           [sub, sub_alternative]
-          |> IO.inspect(label: "ALT")
         end
       end
       |> List.flatten()
@@ -377,22 +376,27 @@ defmodule ZXCVBN.Matching do
   def spatial_match_helper(password, graph, graph_name) do
     length = String.length(password)
 
-    for i <- 0..(length - 1) do
-      j = i + 1
-
-      shifted_count =
-        if graph_name in ~w(qwerty dvorak) and
-             Regex.match?(@shifted_rx, String.at(password, i)) do
-          # initial character is shifted
-          1
-        else
-          0
-        end
-
-      spatial_loop(password, i, j, graph, graph_name, shifted_count, [])
-    end
+    password
+    |> do_spatial_match(graph, graph_name, 0, length, [])
     |> List.flatten()
   end
+
+  defp do_spatial_match(password, graph, graph_name, i, length, matches) when i < (length - 1) do
+    j = i + 1
+
+    shifted_count =
+      if graph_name in ~w(qwerty dvorak) and
+           Regex.match?(@shifted_rx, String.at(password, i)) do
+        # initial character is shifted
+        1
+      else
+        0
+      end
+
+    {matches, i} = spatial_loop(password, i, j, graph, graph_name, shifted_count, matches)
+    do_spatial_match(password, graph, graph_name, i, length, matches)
+  end
+  defp do_spatial_match(_, _, _, _, _, matches), do: matches
 
   defp spatial_loop(password, i, j, graph, graph_name, shifted_count, matches, turns \\ 0, last_direction \\ nil) do
     prev_char = String.at(password, j - 1)
@@ -416,9 +420,8 @@ defmodule ZXCVBN.Matching do
         cur_char = String.at(password, j)
         Enum.reduce_while(
           adjacents,
-          {cur_direction, found, nil, turns, shifted_count},
-          fn adj, {cur_direction, found, last_direction, turns, shifted_count} = tuple ->
-            IO.inspect tuple, label: "WHAT TUPLE"
+          {cur_direction, found, last_direction, turns, shifted_count},
+          fn adj, {cur_direction, found, last_direction, turns, shifted_count} ->
             cur_direction = cur_direction + 1
             if is_binary(adj) and cur_char in String.graphemes(adj) do
               found = true
@@ -431,17 +434,14 @@ defmodule ZXCVBN.Matching do
               shifted_count = if cur_char_index === 1, do: shifted_count + 1, else: shifted_count
 
               {turns, last_direction} =
-                if last_direction !== found_direction do
-                  IO.inspect last_direction, label: "LAST"
-                  IO.inspect found_direction, label: "found"
+                if last_direction === found_direction do
+                  {turns, last_direction}
+                else
                   # adding a turn is correct even in the initial case when last_direction is null:
                   # every spatial pattern starts with a turn.
                   {turns + 1, found_direction}
-                else
-                  {turns, found_direction}
                 end
 
-                |> IO.inspect(label: "RESULT")
               {:halt, {cur_direction, found, last_direction, turns, shifted_count}}
             else
               {:cont, {cur_direction, found, last_direction, turns, shifted_count}}
@@ -459,20 +459,23 @@ defmodule ZXCVBN.Matching do
       # don't consider length 1 or 2 chains.
       if j - i > 2 do
         # ...and then start a new search for the rest of the password.
-        [
-          %{
-            pattern: :spatial,
-            i: i,
-            j: j - 1,
-            token: String.slice(password, i, j),
-            graph: graph_name,
-            turns: turns,
-            shifted_count: shifted_count
-          }
-          | matches
-        ]
+        {
+          [
+            %{
+              pattern: :spatial,
+              i: i,
+              j: j - 1,
+              token: String.slice(password, i, j),
+              graph: graph_name,
+              turns: turns,
+              shifted_count: shifted_count
+            }
+            | matches
+          ],
+          j
+        }
       else
-        matches
+        {matches, j}
       end
     end
   end
