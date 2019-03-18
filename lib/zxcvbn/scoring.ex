@@ -258,7 +258,7 @@ defmodule ZXCVBN.Scoring do
         guesses -> {match, guesses}
       end
 
-    guesses = max(guesses, min_guesses)
+    guesses = if is_number(guesses), do: max(guesses, min_guesses), else: min_guesses
     guesses_log10 = :math.log10(guesses)
 
     match =

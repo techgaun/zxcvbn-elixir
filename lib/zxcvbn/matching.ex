@@ -37,7 +37,7 @@ defmodule ZXCVBN.Matching do
     z: ["2"]
   }
 
-  @regexen ~r'19\d\d|200\d|201\d'
+  @regexen %{recent_year: ~r'19\d\d|200\d|201\d'}
   @date_max_year 2_050
   @date_min_year 1_000
   @date_splits %{
@@ -87,7 +87,7 @@ defmodule ZXCVBN.Matching do
     :spatial,
     # :repeat,
     # :sequence,
-    # :regex,
+    :regex,
     # :date
   ]
 
@@ -500,8 +500,22 @@ defmodule ZXCVBN.Matching do
   end
 
   # TODO: finish impl
-  def regex_match(password, regexen \\ @regexen, ranked_dictionaries) do
-    []
+  def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
+    for {name, regex} <- regexen do
+      for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
+        token = binary_part(password, start, byte_len)
+        len = String.length(token)
+        %{
+          pattern: :regex,
+          token: token,
+          i: start,
+          j: start + len - 1,
+          regex_name: name,
+          # regex_match: # TODO: check back on this
+        }
+      end
+    end
+    |> _sort()
   end
 
   # TODO: finish impl
