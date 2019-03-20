@@ -362,7 +362,6 @@ defmodule ZXCVBN.Matching do
     end)
   end
 
-  # TODO: finish impl
   @doc false
   def spatial_match(password, graphs \\ @adjacency_graphs, _ranked_dictionaries) do
     for {graph_name, graph} <- graphs do
