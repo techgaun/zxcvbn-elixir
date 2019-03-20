@@ -86,7 +86,7 @@ defmodule ZXCVBN.Matching do
     :l33t,
     :spatial,
     :repeat,
-    # :sequence,
+    :sequence,
     :regex,
     # :date
   ]
@@ -480,7 +480,8 @@ defmodule ZXCVBN.Matching do
     end
   end
 
-  # TODO: finish impl
+  @max_delta 5
+
   def sequence_match("", _ranked_dictionaries), do: []
 
   def sequence_match(password, ranked_dictionaries) do
@@ -496,7 +497,61 @@ defmodule ZXCVBN.Matching do
     #
     # expected result:
     # [(i, j, delta), ...] = [(0, 3, 1), (5, 7, -2), (8, 9, 1)]
-    []
+    update = fn
+      i, j, delta, password, matches
+      when ((j - i ) > 1 or (is_number(delta) and abs(delta) === 1)) and
+      abs(delta) in 1..@max_delta ->
+        token = String.slice(password, i, j + 1 - i)
+        {sequence_name, sequence_space} =
+          cond do
+            Regex.match?(~r'^[a-z]+$', token) ->
+              {"lower", 26}
+            Regex.match?(~r'^[A-Z]+$', token) ->
+              {"upper", 26}
+            Regex.match?(~r'^\d+$', token) ->
+              {"digits", 10}
+            true ->
+              {"unicode", 26}
+          end
+
+        [
+          %{
+            pattern: :sequence,
+            i: i,
+            j: j,
+            token: token,
+            sequence_name: sequence_name,
+            sequence_space: sequence_space,
+            ascending: (delta > 0)
+          }
+          | matches
+        ]
+
+      _i, _j, _delta, _password, matches ->
+        matches
+    end
+
+    length = String.length(password)
+
+    {matches, last_delta, i} =
+      Enum.reduce(1..(length - 1), {[], nil, 0}, fn k, {matches, last_delta, i} ->
+        delta =
+          password
+          |> String.slice(k - 1, 2)
+          |> to_charlist()
+          |> (fn [x, y] -> y - x end).()
+
+        last_delta = if is_nil(last_delta), do: delta, else: last_delta
+
+        if delta === last_delta do
+          {matches, last_delta, i}
+        else
+          j = k - 1
+          matches = update.(i, j, last_delta, password, matches)
+          {matches, delta, j}
+        end
+      end)
+    update.(i, length - 1, last_delta, password, matches)
   end
 
   def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
