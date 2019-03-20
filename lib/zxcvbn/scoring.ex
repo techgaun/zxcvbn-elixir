@@ -71,7 +71,7 @@ defmodule ZXCVBN.Scoring do
     matches_by_j =
       matches
       |> Enum.reduce(matches_by_j, fn m, matches_by_j ->
-        Map.update(matches_by_j, m[:j], [], &(&1 ++ [m]))
+        Map.update(matches_by_j, m[:j], [], &([m | &1]))
       end)
       |> Enum.into(%{}, fn {k, list} ->
         {k, Enum.sort(list, &(&1[:i] >= &2[:i]))}

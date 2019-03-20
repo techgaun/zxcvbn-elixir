@@ -85,7 +85,7 @@ defmodule ZXCVBN.Matching do
     :reverse_dictionary,
     :l33t,
     :spatial,
-    # :repeat,
+    :repeat,
     # :sequence,
     :regex,
     # :date
@@ -303,7 +303,7 @@ defmodule ZXCVBN.Matching do
   def repeat_match(password, ranked_dictionaries) do
     length = String.length(password)
 
-    Enum.reduce_while(0..length, [], fn i, matches ->
+    Enum.reduce_while(0..(length - 1), [], fn i, matches ->
       {_, part} = String.split_at(password, i)
       greedy_match = Regex.run(@greedy, part)
       lazy_match = Regex.run(@lazy, part)
@@ -320,7 +320,7 @@ defmodule ZXCVBN.Matching do
               #   greedy: [aabaab, aab]
               #   lazy:   [aa,     a]
               {
-                @greedy |> Regex.run(part, return: :index) |> hd(),
+                regex_i_j(@greedy, part),
                 greedy_first,
                 # greedy's repeated string might itself be repeated, eg.
                 # aabaab in aabaabaabaab.
@@ -330,7 +330,7 @@ defmodule ZXCVBN.Matching do
               }
             else
               {
-                @lazy |> Regex.run(part, return: :index) |> hd(),
+                regex_i_j(@lazy, part),
                 lazy_first,
                 List.last(lazy_match)
               }
@@ -340,7 +340,7 @@ defmodule ZXCVBN.Matching do
           base_analysis =
             Scoring.most_guessable_match_sequence(
               base_token,
-              omnimatch(password, ranked_dictionaries)
+              omnimatch(base_token, ranked_dictionaries)
             )
 
           match = %{
@@ -349,12 +349,12 @@ defmodule ZXCVBN.Matching do
             j: j,
             token: token,
             base_token: base_token,
-            base_guesses: Map.get(base_analysis, :base_guesses),
-            base_matches: Map.get(base_analysis, :base_matches),
-            repeat_count: String.length(token) / String.length(base_token)
+            base_guesses: Map.get(base_analysis, :guesses),
+            base_matches: Map.get(base_analysis, :sequence),
+            repeat_count: trunc(String.length(token) / String.length(base_token))
           }
 
-          {:cont, match}
+          {:cont, [match | matches]}
 
         _ ->
           {:halt, matches}
@@ -499,7 +499,6 @@ defmodule ZXCVBN.Matching do
     []
   end
 
-  # TODO: finish impl
   def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
     for {name, regex} <- regexen do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
@@ -544,8 +543,15 @@ defmodule ZXCVBN.Matching do
   # internal sorting
   defp _sort(list) do
     list
+    |> Stream.reject(&is_nil/1)
     |> Enum.sort(fn x1, x2 ->
-      {x1[:i], x2[:j]} >= {x2[:i], x2[:j]}
+      {x1[:i], x1[:j]} >= {x2[:i], x2[:j]}
     end)
+  end
+
+  defp regex_i_j(regex, string) do
+    {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
+    token = binary_part(string, start, byte_len)
+    {start, String.length(token) - 1}
   end
 end
