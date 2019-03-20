@@ -42,19 +42,19 @@ defmodule ZXCVBN.Matching do
   @date_min_year 1_000
   @date_splits %{
     # for length-4 strings, eg 1191 or 9111, two ways to split:
-    "4": [
+    "4" => [
       # 1 1 91 (2nd split starts at index 1, 3rd at index 2)
       [1, 2],
       # 91 1 1
       [2, 3]
     ],
-    "5": [
+    "5" => [
       # 1 11 91
       [1, 3],
       # 11 1 91
       [2, 3]
     ],
-    "6": [
+    "6" => [
       # 1 1 1991
       [1, 2],
       # 11 11 91
@@ -62,7 +62,7 @@ defmodule ZXCVBN.Matching do
       # 1991 1 1
       [4, 5]
     ],
-    "7": [
+    "7" => [
       # 1 11 1991
       [1, 3],
       # 11 1 1991
@@ -72,7 +72,7 @@ defmodule ZXCVBN.Matching do
       # 1991 11 1
       [4, 6]
     ],
-    "8": [
+    "8" => [
       # 11 11 1991
       [2, 4],
       # 1991 11 11
@@ -571,26 +571,55 @@ defmodule ZXCVBN.Matching do
     |> _sort()
   end
 
-  # TODO: finish impl
-  def date_match(password, ranked_dictionaries) do
-    # a "date" is recognized as:
-    #   any 3-tuple that starts or ends with a 2- or 4-digit year,
-    #   with 2 or 0 separator chars (1.1.91 or 1191),
-    #   maybe zero-padded (01-01-91 vs 1-1-91),
-    #   a month between 1 and 12,
-    #   a day between 1 and 31.
-    #
-    # note: this isn't true date parsing in that "feb 31st" is allowed,
-    # this doesn't check for leap years, etc.
-    #
-    # recipe:
-    # start with regex to find maybe-dates, then attempt to map the integers
-    # onto month-day-year to filter the maybe-dates into dates.
-    # finally, remove matches that are substrings of other matches to reduce noise.
-    #
-    # note: instead of using a lazy or greedy regex to find many dates over the full string,
-    # this uses a ^...$ regex against every substring of the password -- less performant but leads
-    # to every possible date match.
+  @maybe_date_no_separator ~r'^\d{4,8}$'
+  @maybe_date_with_separator ~r'^(\d{1,4})([\s/\\_.-])(\d{1,2})\2(\d{1,4})$'
+
+  @doc """
+  a "date" is recognized as:
+    any 3-tuple that starts or ends with a 2- or 4-digit year,
+    with 2 or 0 separator chars (1.1.91 or 1191),
+    maybe zero-padded (01-01-91 vs 1-1-91),
+    a month between 1 and 12,
+    a day between 1 and 31.
+
+  note: this isn't true date parsing in that "feb 31st" is allowed,
+  this doesn't check for leap years, etc.
+
+  recipe:
+  start with regex to find maybe-dates, then attempt to map the integers
+  onto month-day-year to filter the maybe-dates into dates.
+  finally, remove matches that are substrings of other matches to reduce noise.
+
+  note: instead of using a lazy or greedy regex to find many dates over the full string,
+  this uses a ^...$ regex against every substring of the password -- less performant but leads
+  to every possible date match.
+  """
+  def date_match(password, _ranked_dictionaries) do
+    date_no_separator_matches = date_no_separator_matches(password)
+    date_with_separator_matches = date_with_separator_matches(password)
+
+    [date_no_separator_matches, date_with_separator_matches]
+    |> List.flatten()
+  end
+
+  # dates without separators are between length 4 '1191' and 8 '11111991'
+  defp date_no_separator_matches(password) do
+    length = String.length(password)
+    for i <- 0..(length - 4), j <- (i + 3)..(i + 8), j < length do
+      token = String.slice(password, i, j + 1)
+      token_length = String.length(token)
+      if Regex.match?(@maybe_date_no_separator, token) do
+        candidates =
+          for [k, l] <- Map.get(@date_splits, token_length) do
+            # dmy = map_ints_to_dmy()
+          end
+      end
+    end
+    |> Enum.reject(&is_nil/1)
+  end
+
+  # dates with separators are between length 6 '1/1/91' and 10 '11/11/1991'
+  defp date_with_separator_matches(password) do
     []
   end
 
@@ -607,5 +636,105 @@ defmodule ZXCVBN.Matching do
     {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
     token = binary_part(string, start, byte_len)
     {start, String.length(token) - 1}
+  end
+
+  # date stuff
+
+  @doc """
+  given a 3-tuple, discard if:
+    - middle int is over 31 (for all dmy formats, years are never allowed in
+    the middle)
+    - middle int is zero
+    - any int is over the max allowable year
+    - any int is over two digits but under the min allowable year
+    - 2 ints are over 31, the max allowable day
+    - 2 ints are zero
+    - all ints are over 12, the max allowable month
+  """
+  def map_ints_to_dmy({_first, second, _third}) when second > 31 or second <= 0, do: nil
+  def map_ints_to_dmy({first, second, third}) do
+    {invalid?, over_12, over_31, under_1} =
+      Enum.reduce_while([first, second, third], {false, 0, 0, 0}, fn
+        int, {_invalid?, over_12, over_31, under_1}
+        when int > 99 and int < @date_min_year
+        when int > @date_max_year ->
+          {:halt, {true, over_12, over_31, under_1}}
+
+        int, {invalid?, over_12, over_31, under_1} when int > 31 ->
+          {:cont, {invalid?, over_12, over_31 + 1, under_1}}
+
+        int, {invalid?, over_12, over_31, under_1} when int > 12 ->
+          {:cont, {invalid?, over_12 + 1, over_31, under_1}}
+
+        int, {invalid?, over_12, over_31, under_1} when int <= 0 ->
+          {:cont, {invalid?, over_12, over_31, under_1 + 1}}
+
+        _, acc ->
+          {:cont, acc}
+      end)
+
+    invalid? = invalid? or over_31 >= 2 or over_12 === 3 or under_1 >= 2
+    unless invalid? do
+      # first look for a four digit year: yyyy + daymonth or daymonth + yyyy
+      possible_four_digit_splits = [
+        {third, {first, second}},
+        {first, {second, third}}
+      ]
+
+      case maybe_extract_four_digit_year_date(possible_four_digit_splits) do
+        map when is_map(map) ->
+          map
+        :invalid ->
+          nil
+        nil ->
+          maybe_extract_non_four_digit_year_date(possible_four_digit_splits)
+      end
+    end
+  end
+
+  # for a candidate that includes a four-digit year,
+  # when the remaining ints don't match to a day and month,
+  # it is not a date.
+  defp maybe_extract_four_digit_year_date(possible_four_digit_splits) do
+    Enum.reduce_while(possible_four_digit_splits, nil, fn
+      {y, dm}, _dmy when y >= @date_min_year and y <= @date_max_year ->
+        dm = map_ints_to_dm(dm)
+        if is_map(dm) do
+          {:halt, Map.put(dm, :year, y)}
+        else
+          {:halt, :invalid}
+        end
+      _, dmy -> {:cont, dmy}
+    end)
+  end
+
+  # given no four-digit year, two digit years are the most flexible int to
+  # match, so try to parse a day-month out of ints[0..1] or ints[1..0]
+  defp maybe_extract_non_four_digit_year_date(possible_four_digit_splits) do
+    possible_four_digit_splits
+    |> Enum.map(fn {y, dm} -> {two_to_four_digit_year(y), dm} end)
+    |> maybe_extract_four_digit_year_date()
+  end
+
+  defp map_ints_to_dm(ints) do
+    [ints, Enum.reverse(ints)]
+    |> Enum.find_value(fn
+      {d, m} when d >= 1 and d <= 31 and m >= 1 and m <= 12 ->
+        %{day: d, month: m}
+      _ -> nil
+    end)
+  end
+
+  def two_to_four_digit_year(year) do
+    cond do
+      year > 99 ->
+        year
+      year > 50 ->
+        # 87 -> 1987
+        year + 1900
+      true ->
+        # 15 -> 2015
+        year + 2000
+    end
   end
 end
