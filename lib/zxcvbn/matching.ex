@@ -112,11 +112,11 @@ defmodule ZXCVBN.Matching do
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
         j <- i..(length - 1) do
-      word = String.slice(password_lower, i..j)
+      word = binary_part(password_lower, i, j + 1 - i)
       rank = Map.get(ranked_dict, word)
 
       unless is_nil(rank) do
-        token = String.slice(password, i..j)
+        token = binary_part(password, i, j + 1 - i)
 
         %{
           pattern: :dictionary,
@@ -132,7 +132,6 @@ defmodule ZXCVBN.Matching do
       end
     end
     |> Enum.reject(&is_nil/1)
-    |> _sort()
   end
 
   @doc false
@@ -149,7 +148,6 @@ defmodule ZXCVBN.Matching do
       |> Map.put(:i, length - 1 - match[:j])
       |> Map.put(:j, length - 1 - match[:i])
     end)
-    |> _sort()
   end
 
   @doc false
@@ -192,7 +190,6 @@ defmodule ZXCVBN.Matching do
       _ ->
         false
     end)
-    |> _sort()
   end
 
   defp relevant_l33t_subtable(password, table) do
@@ -366,7 +363,6 @@ defmodule ZXCVBN.Matching do
     for {graph_name, graph} <- graphs do
       spatial_match_helper(password, graph, graph_name)
     end
-    |> _sort()
   end
 
   @shifted_rx ~r'[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]'
@@ -601,7 +597,6 @@ defmodule ZXCVBN.Matching do
         }
       end
     end
-    |> _sort()
   end
 
   @maybe_date_no_separator ~r'^\d{4,8}$'

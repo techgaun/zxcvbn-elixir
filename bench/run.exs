@@ -17,7 +17,9 @@ passwords = %{
   ],
   "repeats" => [
     "abcabcabc",
-    "aaaaaa"
+    "aaaaaa",
+    String.duplicate("aQs", 50),
+    String.duplicate("sam", 50)
   ],
   "spatial" => [
     "asdflkjh",
