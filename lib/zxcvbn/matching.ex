@@ -252,14 +252,11 @@ defmodule ZXCVBN.Matching do
 
         if dup_l33t_index === -1 do
           [Map.put(sub, l33t_chr, first_key)]
-          # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes()
         else
           sub_alternative =
             sub
             |> Map.drop([dup_l33t_index])
             |> Map.put(l33t_chr, first_key)
-
-          # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
 
           [sub, sub_alternative]
         end
