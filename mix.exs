@@ -1,13 +1,17 @@
 defmodule ZXCVBN.MixProject do
   use Mix.Project
 
+  @github_link "https://github.com/techgaun/zxcvbn-elixir"
+
   def project do
     [
       app: :zxcvbn,
       version: "0.1.0",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
+      build_permanent: Mix.env() == :prod,
       deps: deps(),
+      package: package(),
 
       # coverage
       test_coverage: [tool: ExCoveralls],
@@ -20,8 +24,8 @@ defmodule ZXCVBN.MixProject do
 
       # docs
       name: "ZXCVBN",
-      source_url: "https://github.com/techgaun/zxcvbn-elixir",
-      homepage_url: "https://github.com/techgaun/zxcvbn-elixir",
+      source_url: @github_link,
+      homepage_url: @github_link,
       docs: [
         main: "ZXCVBN",
         extras: ["readme.md"]
@@ -45,6 +49,17 @@ defmodule ZXCVBN.MixProject do
       {:benchee_html, "~> 0.3", only: :dev},
       {:excoveralls, "~> 0.10.6", only: :test},
       {:stream_data, "~> 0.1", only: :test}
+    ]
+  end
+
+  defp package do
+    [
+      name: "zxcvbn",
+      maintainers: [
+        "Samar Acharya"
+      ],
+      licenses: "Apache-2.0",
+      links: %{"GitHub" => @github_link}
     ]
   end
 end
