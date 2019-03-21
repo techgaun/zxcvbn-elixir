@@ -96,8 +96,8 @@ defmodule ZXCVBN.Matching do
   """
   def omnimatch(password, ranked_dictionaries) do
     @matcher_types
-    |> Enum.reduce([], fn matcher_type, matches ->
-      [apply(__MODULE__, :"#{matcher_type}_match", [password, ranked_dictionaries]) | matches]
+    |> Enum.map(fn matcher_type ->
+      apply(__MODULE__, :"#{matcher_type}_match", [password, ranked_dictionaries])
     end)
     |> List.flatten()
     |> _sort()
