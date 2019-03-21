@@ -27,3 +27,17 @@ zxcvbn("Some Password")
 # think someone using their e-mail address as password for example)
 zxcvbn("Password1", ["user@email.com", "Nepal", "Kathmandu"])
 ```
+
+## Benchmark
+
+The basic benchmark result can be seen by running:
+
+```shell
+mix run bench/run.exs
+```
+
+That will create html output on `benchmarks` directory.
+
+## Author
+
+- [Samar Acharya](https://github.com/techgaun)
