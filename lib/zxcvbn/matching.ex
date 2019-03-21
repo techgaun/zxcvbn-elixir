@@ -598,8 +598,11 @@ defmodule ZXCVBN.Matching do
     date_no_separator_matches = date_no_separator_matches(password)
     date_with_separator_matches = date_with_separator_matches(password)
 
-    [date_no_separator_matches, date_with_separator_matches]
-    |> List.flatten()
+    matches =
+      [date_no_separator_matches, date_with_separator_matches]
+      |> List.flatten()
+
+    Enum.reject(matches, & substring_date?(&1, matches))
   end
 
   # dates without separators are between length 4 '1191' and 8 '11111991'
@@ -609,8 +612,6 @@ defmodule ZXCVBN.Matching do
       token = String.slice(password, i..(j + 1))
       token_length = String.length(token)
       if Regex.match?(@maybe_date_no_separator, token) do
-        IO.inspect token
-        IO.inspect token_length
         candidates =
           for {k, l} <- Map.get(@date_splits, to_string(token_length)) do
             map_ints_to_dmy({
@@ -641,7 +642,7 @@ defmodule ZXCVBN.Matching do
             token: token,
             i: i,
             j: j,
-            separator: '',
+            separator: "",
           }
           |> Map.merge(best_candidate)
         end
@@ -759,7 +760,7 @@ defmodule ZXCVBN.Matching do
         if is_map(dm) do
           {:halt, Map.put(dm, :year, y)}
         else
-          {:halt, :invalid}
+          {:halt, nil}
         end
       _, dmy -> {:cont, dmy}
     end)
@@ -798,11 +799,23 @@ defmodule ZXCVBN.Matching do
 
   defp slice_to_integer(string, start) do
     length = String.length(string)
-    slice_to_integer(string, start, length - 1)
+    slice_to_integer(string, start, length)
   end
   defp slice_to_integer(string, start, end_index) do
     string
-    |> String.slice(start, start..end_index)
+    |> String.slice(start..(end_index - 1))
     |> String.to_integer()
+  end
+
+  defp substring_date?(%{i: i, j: j} = match, matches) do
+    Enum.reduce_while(matches, false, fn
+      other, substring? when match === other ->
+        {:cont, substring?}
+      %{i: other_i, j: other_j}, _substring?
+      when other_i <= i and other_j >= j ->
+        {:halt, true}
+      _, substring? ->
+        {:cont, substring?}
+    end)
   end
 end

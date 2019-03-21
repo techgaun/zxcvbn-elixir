@@ -363,8 +363,8 @@ defmodule ZXCVBN.Scoring do
       |> max(@min_year_space)
 
     guesses = year_space * 365
-
-    if Map.get(match, :separator), do: guesses * 4, else: guesses
+    separator = Map.get(match, :separator)
+    if is_nil(separator) or separator === "", do: guesses, else: guesses * 4
   end
 
   @qwerty_graph adjacency_graph()[:qwerty]
