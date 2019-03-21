@@ -13,6 +13,8 @@ defmodule ZXCVBN.Scoring do
   @min_year_space 20
   @reference_year Date.utc_today().year
 
+  def reference_year, do: @reference_year
+
   @doc """
   Reference: http://blog.plover.com/math/choose.html
   """

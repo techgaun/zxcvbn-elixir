@@ -44,39 +44,39 @@ defmodule ZXCVBN.Matching do
     # for length-4 strings, eg 1191 or 9111, two ways to split:
     "4" => [
       # 1 1 91 (2nd split starts at index 1, 3rd at index 2)
-      [1, 2],
+      {1, 2},
       # 91 1 1
-      [2, 3]
+      {2, 3}
     ],
     "5" => [
       # 1 11 91
-      [1, 3],
+      {1, 3},
       # 11 1 91
-      [2, 3]
+      {2, 3}
     ],
     "6" => [
       # 1 1 1991
-      [1, 2],
+      {1, 2},
       # 11 11 91
-      [2, 4],
+      {2, 4},
       # 1991 1 1
-      [4, 5]
+      {4, 5}
     ],
     "7" => [
       # 1 11 1991
-      [1, 3],
+      {1, 3},
       # 11 1 1991
-      [2, 3],
+      {2, 3},
       # 1991 1 11
-      [4, 5],
+      {4, 5},
       # 1991 11 1
-      [4, 6]
+      {4, 6}
     ],
     "8" => [
       # 11 11 1991
-      [2, 4],
+      {2, 4},
       # 1991 11 11
-      [4, 6]
+      {4, 6}
     ]
   }
 
@@ -86,9 +86,9 @@ defmodule ZXCVBN.Matching do
     :l33t,
     :spatial,
     :repeat,
-    :sequence,
+    # :sequence,
     :regex,
-    # :date
+    :date
   ]
 
   @doc """
@@ -483,7 +483,7 @@ defmodule ZXCVBN.Matching do
 
   def sequence_match("", _ranked_dictionaries), do: []
 
-  def sequence_match(password, ranked_dictionaries) do
+  def sequence_match(password, _ranked_dictionaries) do
     # Identifies sequences by looking for repeated differences in unicode codepoint.
     # this allows skipping, such as 9753, and also matches some extended unicode sequences
     # such as Greek and Cyrillic alphabets.
@@ -606,13 +606,45 @@ defmodule ZXCVBN.Matching do
   defp date_no_separator_matches(password) do
     length = String.length(password)
     for i <- 0..(length - 4), j <- (i + 3)..(i + 8), j < length do
-      token = String.slice(password, i, j + 1)
+      token = String.slice(password, i..(j + 1))
       token_length = String.length(token)
       if Regex.match?(@maybe_date_no_separator, token) do
+        IO.inspect token
+        IO.inspect token_length
         candidates =
-          for [k, l] <- Map.get(@date_splits, token_length) do
-            # dmy = map_ints_to_dmy()
+          for {k, l} <- Map.get(@date_splits, to_string(token_length)) do
+            map_ints_to_dmy({
+              slice_to_integer(token, 0, k),
+              slice_to_integer(token, k, l),
+              slice_to_integer(token, l)
+            })
           end
+          |> Enum.reject(&is_nil/1)
+
+        if length(candidates) > 0 do
+          # at this point: different possible dmy mappings for the same i,j
+          # substring. match the candidate date that likely takes the fewest
+          # guesses: a year closest to 2000. (scoring.REFERENCE_YEAR).
+          #
+          # ie, considering '111504', prefer 11-15-04 to 1-1-1504
+          # (interpreting '04' as 2004)
+          best_candidate = Enum.min_by(
+            candidates,
+            fn candidate ->
+              abs(candidate[:year] - Scoring.reference_year())
+            end,
+            fn -> hd(candidates) end
+          )
+
+          %{
+            pattern: :date,
+            token: token,
+            i: i,
+            j: j,
+            separator: '',
+          }
+          |> Map.merge(best_candidate)
+        end
       end
     end
     |> Enum.reject(&is_nil/1)
@@ -620,7 +652,32 @@ defmodule ZXCVBN.Matching do
 
   # dates with separators are between length 6 '1/1/91' and 10 '11/11/1991'
   defp date_with_separator_matches(password) do
-    []
+    length = String.length(password)
+    for i <- 0..(length - 5), j <- (i + 5)..(i + 10), j < length do
+      token = String.slice(password, i..(j + 1))
+
+      rx_match = Regex.run(@maybe_date_with_separator, token)
+      unless is_nil(rx_match) do
+        [_, g1, separator, g2, g3] = rx_match
+        dmy = map_ints_to_dmy({
+          String.to_integer(g1),
+          String.to_integer(g2),
+          String.to_integer(g3)
+        })
+
+        unless is_nil(dmy) do
+          %{
+            pattern: :date,
+            token: token,
+            i: i,
+            j: j,
+            separator: separator,
+          }
+          |> Map.merge(dmy)
+        end
+      end
+    end
+    |> Enum.reject(&is_nil/1)
   end
 
   # internal sorting
@@ -717,7 +774,8 @@ defmodule ZXCVBN.Matching do
   end
 
   defp map_ints_to_dm(ints) do
-    [ints, Enum.reverse(ints)]
+    reversed = ints |> Tuple.to_list |> Enum.reverse() |> List.to_tuple()
+    [ints, reversed]
     |> Enum.find_value(fn
       {d, m} when d >= 1 and d <= 31 and m >= 1 and m <= 12 ->
         %{day: d, month: m}
@@ -725,7 +783,7 @@ defmodule ZXCVBN.Matching do
     end)
   end
 
-  def two_to_four_digit_year(year) do
+  defp two_to_four_digit_year(year) do
     cond do
       year > 99 ->
         year
@@ -736,5 +794,15 @@ defmodule ZXCVBN.Matching do
         # 15 -> 2015
         year + 2000
     end
+  end
+
+  defp slice_to_integer(string, start) do
+    length = String.length(string)
+    slice_to_integer(string, start, length - 1)
+  end
+  defp slice_to_integer(string, start, end_index) do
+    string
+    |> String.slice(start, start..end_index)
+    |> String.to_integer()
   end
 end
