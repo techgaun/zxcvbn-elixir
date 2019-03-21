@@ -68,18 +68,18 @@ defmodule ZXCVBN.Scoring do
     n = String.length(password)
     n_minus_one = n - 1
     # partition matches into sublists according to ending index j
-    matches_by_j = Enum.into(0..n_minus_one, %{}, & {&1, []})
+    matches_by_j = Enum.into(0..n_minus_one, %{}, &{&1, []})
 
     matches_by_j =
       matches
       |> Enum.reduce(matches_by_j, fn m, matches_by_j ->
-        Map.update(matches_by_j, m[:j], [], &([m | &1]))
+        Map.update(matches_by_j, m[:j], [], &[m | &1])
       end)
       |> Enum.into(%{}, fn {k, list} ->
         {k, Enum.sort(list, &(&1[:i] >= &2[:i]))}
       end)
 
-    placeholder = Enum.into(0..n_minus_one, %{}, & {&1, %{}})
+    placeholder = Enum.into(0..n_minus_one, %{}, &{&1, %{}})
 
     optimal = %{
       m: placeholder,
@@ -436,7 +436,7 @@ defmodule ZXCVBN.Scoring do
     {
       match,
       match[:base_guesses] * match[:uppercase_variations] * match[:l33t_variations] *
-      reversed_variations
+        reversed_variations
     }
   end
 

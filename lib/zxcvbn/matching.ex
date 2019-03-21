@@ -114,8 +114,10 @@ defmodule ZXCVBN.Matching do
         j <- i..(length - 1) do
       word = String.slice(password_lower, i..j)
       rank = Map.get(ranked_dict, word)
+
       unless is_nil(rank) do
         token = String.slice(password, i..j)
+
         %{
           pattern: :dictionary,
           i: i,
@@ -256,7 +258,8 @@ defmodule ZXCVBN.Matching do
             sub
             |> Map.drop([dup_l33t_index])
             |> Map.put(l33t_chr, first_key)
-            # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
+
+          # "#{sub}#{l33t_chr}#{first_key}" |> String.graphemes() |> Kernel.--([dup_l33t_index])
 
           [sub, sub_alternative]
         end
@@ -379,12 +382,11 @@ defmodule ZXCVBN.Matching do
     |> List.flatten()
   end
 
-  defp do_spatial_match(password, graph, graph_name, i, length, matches) when i < (length - 1) do
+  defp do_spatial_match(password, graph, graph_name, i, length, matches) when i < length - 1 do
     j = i + 1
 
     shifted_count =
-      if graph_name in ~w(qwerty dvorak) and
-           Regex.match?(@shifted_rx, String.at(password, i)) do
+      if graph_name in ~w(qwerty dvorak) and Regex.match?(@shifted_rx, String.at(password, i)) do
         # initial character is shifted
         1
       else
@@ -394,9 +396,20 @@ defmodule ZXCVBN.Matching do
     {matches, i} = spatial_loop(password, i, j, graph, graph_name, shifted_count, matches)
     do_spatial_match(password, graph, graph_name, i, length, matches)
   end
+
   defp do_spatial_match(_, _, _, _, _, matches), do: matches
 
-  defp spatial_loop(password, i, j, graph, graph_name, shifted_count, matches, turns \\ 0, last_direction \\ nil) do
+  defp spatial_loop(
+         password,
+         i,
+         j,
+         graph,
+         graph_name,
+         shifted_count,
+         matches,
+         turns \\ 0,
+         last_direction \\ nil
+       ) do
     prev_char = String.at(password, j - 1)
     found = false
     cur_direction = -1
@@ -409,6 +422,7 @@ defmodule ZXCVBN.Matching do
       else
         []
       end
+
     length = String.length(password)
 
     # consider growing pattern by one character if j hasn't gone
@@ -416,11 +430,13 @@ defmodule ZXCVBN.Matching do
     {_cur_direction, found, last_direction, turns, shifted_count} =
       if j < length do
         cur_char = String.at(password, j)
+
         Enum.reduce_while(
           adjacents,
           {cur_direction, found, last_direction, turns, shifted_count},
           fn adj, {cur_direction, found, last_direction, turns, shifted_count} ->
             cur_direction = cur_direction + 1
+
             if is_binary(adj) and cur_char in String.graphemes(adj) do
               found = true
               found_direction = cur_direction
@@ -452,7 +468,17 @@ defmodule ZXCVBN.Matching do
 
     if found do
       # if the current pattern continued, extend j and try to grow again
-      spatial_loop(password, i, j + 1, graph, graph_name, shifted_count, matches, turns, last_direction)
+      spatial_loop(
+        password,
+        i,
+        j + 1,
+        graph,
+        graph_name,
+        shifted_count,
+        matches,
+        turns,
+        last_direction
+      )
     else
       # don't consider length 1 or 2 chains.
       if j - i > 2 do
@@ -503,17 +529,20 @@ defmodule ZXCVBN.Matching do
     # [(i, j, delta), ...] = [(0, 3, 1), (5, 7, -2), (8, 9, 1)]
     update = fn
       i, j, delta, password, matches
-      when ((j - i ) > 1 or (is_number(delta) and abs(delta) === 1)) and
-      abs(delta) in 1..@max_delta ->
+      when (j - i > 1 or (is_number(delta) and abs(delta) === 1)) and abs(delta) in 1..@max_delta ->
         token = String.slice(password, i, j + 1 - i)
+
         {sequence_name, sequence_space} =
           cond do
             Regex.match?(~r'^[a-z]+$', token) ->
               {"lower", 26}
+
             Regex.match?(~r'^[A-Z]+$', token) ->
               {"upper", 26}
+
             Regex.match?(~r'^\d+$', token) ->
               {"digits", 10}
+
             true ->
               {"unicode", 26}
           end
@@ -526,7 +555,7 @@ defmodule ZXCVBN.Matching do
             token: token,
             sequence_name: sequence_name,
             sequence_space: sequence_space,
-            ascending: (delta > 0)
+            ascending: delta > 0
           }
           | matches
         ]
@@ -555,6 +584,7 @@ defmodule ZXCVBN.Matching do
           {matches, delta, j}
         end
       end)
+
     update.(i, length - 1, last_delta, password, matches)
   end
 
@@ -563,12 +593,13 @@ defmodule ZXCVBN.Matching do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
         token = binary_part(password, start, byte_len)
         len = String.length(token)
+
         %{
           pattern: :regex,
           token: token,
           i: start,
           j: start + len - 1,
-          regex_name: name,
+          regex_name: name
           # regex_match: # TODO: check back on this
         }
       end
@@ -607,15 +638,17 @@ defmodule ZXCVBN.Matching do
       [date_no_separator_matches, date_with_separator_matches]
       |> List.flatten()
 
-    Enum.reject(matches, & substring_date?(&1, matches))
+    Enum.reject(matches, &substring_date?(&1, matches))
   end
 
   # dates without separators are between length 4 '1191' and 8 '11111991'
   defp date_no_separator_matches(password) do
     length = String.length(password)
+
     for i <- 0..(length - 4), j <- (i + 3)..(i + 8), j < length do
       token = String.slice(password, i..(j + 1))
       token_length = String.length(token)
+
       if Regex.match?(@maybe_date_no_separator, token) do
         candidates =
           for {k, l} <- Map.get(@date_splits, to_string(token_length)) do
@@ -634,20 +667,21 @@ defmodule ZXCVBN.Matching do
           #
           # ie, considering '111504', prefer 11-15-04 to 1-1-1504
           # (interpreting '04' as 2004)
-          best_candidate = Enum.min_by(
-            candidates,
-            fn candidate ->
-              abs(candidate[:year] - Scoring.reference_year())
-            end,
-            fn -> hd(candidates) end
-          )
+          best_candidate =
+            Enum.min_by(
+              candidates,
+              fn candidate ->
+                abs(candidate[:year] - Scoring.reference_year())
+              end,
+              fn -> hd(candidates) end
+            )
 
           %{
             pattern: :date,
             token: token,
             i: i,
             j: j,
-            separator: "",
+            separator: ""
           }
           |> Map.merge(best_candidate)
         end
@@ -659,17 +693,21 @@ defmodule ZXCVBN.Matching do
   # dates with separators are between length 6 '1/1/91' and 10 '11/11/1991'
   defp date_with_separator_matches(password) do
     length = String.length(password)
+
     for i <- 0..(length - 5), j <- (i + 5)..(i + 10), j < length do
       token = String.slice(password, i..(j + 1))
 
       rx_match = Regex.run(@maybe_date_with_separator, token)
+
       unless is_nil(rx_match) do
         [_, g1, separator, g2, g3] = rx_match
-        dmy = map_ints_to_dmy({
-          String.to_integer(g1),
-          String.to_integer(g2),
-          String.to_integer(g3)
-        })
+
+        dmy =
+          map_ints_to_dmy({
+            String.to_integer(g1),
+            String.to_integer(g2),
+            String.to_integer(g3)
+          })
 
         unless is_nil(dmy) do
           %{
@@ -677,7 +715,7 @@ defmodule ZXCVBN.Matching do
             token: token,
             i: i,
             j: j,
-            separator: separator,
+            separator: separator
           }
           |> Map.merge(dmy)
         end
@@ -715,6 +753,7 @@ defmodule ZXCVBN.Matching do
     - all ints are over 12, the max allowable month
   """
   def map_ints_to_dmy({_first, second, _third}) when second > 31 or second <= 0, do: nil
+
   def map_ints_to_dmy({first, second, third}) do
     {invalid?, over_12, over_31, under_1} =
       Enum.reduce_while([first, second, third], {false, 0, 0, 0}, fn
@@ -737,6 +776,7 @@ defmodule ZXCVBN.Matching do
       end)
 
     invalid? = invalid? or over_31 >= 2 or over_12 === 3 or under_1 >= 2
+
     unless invalid? do
       # first look for a four digit year: yyyy + daymonth or daymonth + yyyy
       possible_four_digit_splits = [
@@ -747,8 +787,10 @@ defmodule ZXCVBN.Matching do
       case maybe_extract_four_digit_year_date(possible_four_digit_splits) do
         map when is_map(map) ->
           map
+
         :invalid ->
           nil
+
         nil ->
           maybe_extract_non_four_digit_year_date(possible_four_digit_splits)
       end
@@ -762,12 +804,15 @@ defmodule ZXCVBN.Matching do
     Enum.reduce_while(possible_four_digit_splits, nil, fn
       {y, dm}, _dmy when y >= @date_min_year and y <= @date_max_year ->
         dm = map_ints_to_dm(dm)
+
         if is_map(dm) do
           {:halt, Map.put(dm, :year, y)}
         else
           {:halt, nil}
         end
-      _, dmy -> {:cont, dmy}
+
+      _, dmy ->
+        {:cont, dmy}
     end)
   end
 
@@ -780,12 +825,15 @@ defmodule ZXCVBN.Matching do
   end
 
   defp map_ints_to_dm(ints) do
-    reversed = ints |> Tuple.to_list |> Enum.reverse() |> List.to_tuple()
+    reversed = ints |> Tuple.to_list() |> Enum.reverse() |> List.to_tuple()
+
     [ints, reversed]
     |> Enum.find_value(fn
       {d, m} when d >= 1 and d <= 31 and m >= 1 and m <= 12 ->
         %{day: d, month: m}
-      _ -> nil
+
+      _ ->
+        nil
     end)
   end
 
@@ -793,9 +841,11 @@ defmodule ZXCVBN.Matching do
     cond do
       year > 99 ->
         year
+
       year > 50 ->
         # 87 -> 1987
         year + 1900
+
       true ->
         # 15 -> 2015
         year + 2000
@@ -806,6 +856,7 @@ defmodule ZXCVBN.Matching do
     length = String.length(string)
     slice_to_integer(string, start, length)
   end
+
   defp slice_to_integer(string, start, end_index) do
     string
     |> String.slice(start..(end_index - 1))
@@ -816,9 +867,11 @@ defmodule ZXCVBN.Matching do
     Enum.reduce_while(matches, false, fn
       other, substring? when match === other ->
         {:cont, substring?}
+
       %{i: other_i, j: other_j}, _substring?
       when other_i <= i and other_j >= j ->
         {:halt, true}
+
       _, substring? ->
         {:cont, substring?}
     end)
