@@ -36,6 +36,8 @@ defmodule ZXCVBN.MixProject do
     [
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:benchee, "~> 0.13", only: :dev},
+      {:benchee_html, "~> 0.3", only: :dev},
       {:excoveralls, "~> 0.10.6", only: :test},
       {:stream_data, "~> 0.1", only: :test}
     ]

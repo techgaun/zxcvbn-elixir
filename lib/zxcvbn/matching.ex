@@ -86,7 +86,7 @@ defmodule ZXCVBN.Matching do
     :l33t,
     :spatial,
     :repeat,
-    # :sequence,
+    :sequence,
     :regex,
     :date
   ]
