@@ -112,17 +112,16 @@ defmodule ZXCVBN.Matching do
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
         j <- i..(length - 1) do
-      ranked_dict_values = Map.keys(ranked_dict)
-      if (word = String.slice(password_lower, i, j + 1 - i)) in ranked_dict_values do
-        token = String.slice(password_lower, i, j + 1 - i)
-        rank = ranked_dict[word]
-
+      word = String.slice(password_lower, i..j)
+      rank = Map.get(ranked_dict, word)
+      unless is_nil(rank) do
+        token = String.slice(password, i..j)
         %{
           pattern: :dictionary,
           i: i,
           j: j,
           token: token,
-          matched_word: word,
+          matched_word: token,
           rank: rank,
           dictionary_name: dictionary_name,
           reversed: false,
