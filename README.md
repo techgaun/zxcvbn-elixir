@@ -2,8 +2,6 @@
 
 > Elixir implementation of [zxcvbn](https://github.com/dropbox/zxcvbn) by dropbox
 
-Note: This is a Work in Progress and I hope to finish this by 03/24/2019. Right now, it is missing date matching.
-
 ## Installation
 
 ```elixir
