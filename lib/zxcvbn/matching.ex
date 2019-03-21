@@ -481,9 +481,15 @@ defmodule ZXCVBN.Matching do
 
   @max_delta 5
 
-  def sequence_match("", _ranked_dictionaries), do: []
+  def sequence_match(password, ranked_dictionaries) do
+    if String.length(password) <= 1 do
+      []
+    else
+      do_sequence_match(password, ranked_dictionaries)
+    end
+  end
 
-  def sequence_match(password, _ranked_dictionaries) do
+  def do_sequence_match(password, _ranked_dictionaries) do
     # Identifies sequences by looking for repeated differences in unicode codepoint.
     # this allows skipping, such as 9753, and also matches some extended unicode sequences
     # such as Greek and Cyrillic alphabets.
