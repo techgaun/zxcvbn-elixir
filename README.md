@@ -1,4 +1,4 @@
-# zxcvbn-elixir [![Build Status](https://travis-ci.org/techgaun/zxcvbn-elixir.svg?branch=master)](https://travis-ci.org/techgaun/zxcvbn-elixir)
+# zxcvbn-elixir [![Build Status](https://travis-ci.org/techgaun/zxcvbn-elixir.svg?branch=master)](https://travis-ci.org/techgaun/zxcvbn-elixir) [![Hex Version](https://img.shields.io/hexpm/v/zxcvbn.svg)](https://hex.pm/packages/zxcvbn)
 
 > Elixir implementation of [zxcvbn](https://github.com/dropbox/zxcvbn) by dropbox
 
