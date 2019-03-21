@@ -24,11 +24,12 @@ defmodule ZXCVBN.MixProject do
 
       # docs
       name: "ZXCVBN",
+      description: "Elixir implementation of zxcvbn",
       source_url: @github_link,
       homepage_url: @github_link,
       docs: [
         main: "ZXCVBN",
-        extras: ["readme.md"]
+        extras: ["README.md"]
       ]
     ]
   end
@@ -58,7 +59,7 @@ defmodule ZXCVBN.MixProject do
       maintainers: [
         "Samar Acharya"
       ],
-      licenses: "Apache-2.0",
+      licenses: ["Apache-2.0"],
       links: %{"GitHub" => @github_link}
     ]
   end
