@@ -11,8 +11,9 @@ otp_release:
   - 20.3.3
 
 env:
-  - MIX_ENV=test
-  - NODE_VERSION=10.15.3
+  global:
+    - MIX_ENV=test
+    - NODE_VERSION=10.15.3
 
 before_install:
   - nvm install $NODE_VERSION
