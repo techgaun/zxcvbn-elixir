@@ -36,6 +36,12 @@ mix run bench/run.exs
 
 That will create html output on `benchmarks` directory.
 
+## Test
+
+The [zxcvbn.js](zxcvbn.js) is used to test the [correctness](test/zxcvbn_test.exs)
+with the original implementation. ZXCVBN is a pure Elixir implementation
+and not a wrapper on top of javascript version.
+
 ## Author
 
 - [Samar Acharya](https://github.com/techgaun)

@@ -1,0 +1,32 @@
+{
+  "name": "zxcvbn-elixir",
+  "version": "0.1.1",
+  "description": "> Elixir implementation of [zxcvbn](https://github.com/dropbox/zxcvbn) by dropbox",
+  "main": "zxcvbn.js",
+  "directories": {
+    "doc": "doc",
+    "lib": "lib",
+    "test": "test"
+  },
+  "dependencies": {
+    "zxcvbn": "^4.4.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/techgaun/zxcvbn-elixir.git"
+  },
+  "keywords": [
+    "zxcvbn",
+    "elixir"
+  ],
+  "author": "techgaun",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/techgaun/zxcvbn-elixir/issues"
+  },
+  "homepage": "https://github.com/techgaun/zxcvbn-elixir#readme"
+}

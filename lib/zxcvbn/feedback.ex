@@ -196,7 +196,7 @@ defmodule ZXCVBN.Feedback do
     end
   end
 
-  defp l33t_suggestion(%{l33t: l33t}) when not is_nil(l33t) do
+  defp l33t_suggestion(%{l33t: l33t}) when l33t === true do
     "Predictable substitutions like '@' instead of 'a' don't help very much"
   end
 

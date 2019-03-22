@@ -6,7 +6,7 @@ defmodule ZXCVBN.MixProject do
   def project do
     [
       app: :zxcvbn,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       build_permanent: Mix.env() == :prod,
@@ -49,7 +49,8 @@ defmodule ZXCVBN.MixProject do
       {:benchee, "~> 0.13", only: :dev},
       {:benchee_html, "~> 0.3", only: :dev},
       {:excoveralls, "~> 0.10.6", only: :test},
-      {:stream_data, "~> 0.1", only: :test}
+      {:stream_data, "~> 0.1", only: :test},
+      {:jason, "~> 1.1", only: [:dev, :test]}
     ]
   end
 
@@ -60,7 +61,8 @@ defmodule ZXCVBN.MixProject do
         "Samar Acharya"
       ],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @github_link}
+      links: %{"GitHub" => @github_link},
+      files: ~w(lib priv CHANGELOG.md README.md LICENSE mix.exs .formatter.exs)
     ]
   end
 end

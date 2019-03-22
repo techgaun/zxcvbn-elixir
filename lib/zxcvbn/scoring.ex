@@ -23,7 +23,7 @@ defmodule ZXCVBN.Scoring do
 
   def nCk(n, k) do
     {r, _n} =
-      Enum.reduce(1..(k + 1), {1, n}, fn d, {r, n} ->
+      Enum.reduce(1..k, {1, n}, fn d, {r, n} ->
         {r * n / d, n - 1}
       end)
 
@@ -312,7 +312,7 @@ defmodule ZXCVBN.Scoring do
           26
       end
 
-    base_guesses = if is_nil(Map.get(match, :ascending)), do: base_guesses * 2, else: base_guesses
+    base_guesses = if Map.get(match, :ascending), do: base_guesses, else: base_guesses * 2
 
     base_guesses * String.length(token)
   end

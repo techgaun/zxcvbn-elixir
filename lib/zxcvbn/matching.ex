@@ -152,7 +152,7 @@ defmodule ZXCVBN.Matching do
 
   @doc false
   def l33t_match(password, ranked_dictionaries, l33t_table \\ @l33t_table) do
-    for sub <- enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)) do
+    for [_ | _] = sub <- enumerate_l33t_subs(relevant_l33t_subtable(password, l33t_table)) do
       subbed_password = translate(password, sub)
 
       for match <- dictionary_match(subbed_password, ranked_dictionaries) do
@@ -180,6 +180,7 @@ defmodule ZXCVBN.Matching do
         end
       end
     end
+    |> List.flatten()
     |> Enum.reject(fn
       nil ->
         true
@@ -215,18 +216,12 @@ defmodule ZXCVBN.Matching do
 
   defp enumerate_l33t_subs(table) do
     keys = Map.keys(table)
-
-    l33t_helper(table, keys, [%{}])
-    # subs = l33t_helper(table, keys, [%{}])
-
-    # for sub <- subs, {l33t_chr, chr} <- sub, into: [] do
-    #   {l33t_chr, chr}
-    # end
+    l33t_helper(table, keys, [[]])
   end
 
   defp translate(string, chr_map) do
     for char <- String.graphemes(string) do
-      if chr = Map.get(chr_map, char, false) do
+      if chr = Map.get(Enum.into(chr_map, %{}), char, false) do
         chr
       else
         char
@@ -237,28 +232,29 @@ defmodule ZXCVBN.Matching do
 
   defp l33t_helper(table, [first_key | rest_keys], subs) do
     next_subs =
-      for l33t_chr <- Map.get(table, first_key), sub <- subs do
-        dup_l33t_index =
-          Enum.reduce(0..(map_size(sub) - 1), -1, fn i, dup_l33t_index ->
-            if get_in(sub, [i, 0]) === l33t_chr do
-              i
-            else
-              dup_l33t_index
-            end
-          end)
-
-        if dup_l33t_index === -1 do
-          [Map.put(sub, l33t_chr, first_key)]
-        else
-          sub_alternative =
+      table
+      |> Map.get(first_key)
+      |> Enum.reduce([], fn l33t_chr, next_subs ->
+        Enum.reduce(subs, next_subs, fn sub, next_subs ->
+          dup_l33t_index =
             sub
-            |> Map.drop([dup_l33t_index])
-            |> Map.put(l33t_chr, first_key)
+            |> Enum.with_index()
+            |> Enum.reduce_while(-1, fn {{sub_l33t_chr, _value}, i}, dup_l33t_index ->
+              if sub_l33t_chr === l33t_chr do
+                {:halt, i}
+              else
+                {:cont, dup_l33t_index}
+              end
+            end)
 
-          [sub, sub_alternative]
-        end
-      end
-      |> List.flatten()
+          if dup_l33t_index === -1 do
+            [[{l33t_chr, first_key} | sub] | next_subs]
+          else
+            sub_alternative = [{l33t_chr, first_key} | List.delete_at(sub, dup_l33t_index)]
+            [sub, sub_alternative | next_subs]
+          end
+        end)
+      end)
 
     subs = dedup(next_subs)
     l33t_helper(table, rest_keys, subs)
