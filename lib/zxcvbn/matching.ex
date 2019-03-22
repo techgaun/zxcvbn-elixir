@@ -312,7 +312,7 @@ defmodule ZXCVBN.Matching do
               #   greedy: [aabaab, aab]
               #   lazy:   [aa,     a]
               {
-                regex_i_j(@greedy, part),
+                regex_i_j(@greedy, part, i),
                 greedy_first,
                 # greedy's repeated string might itself be repeated, eg.
                 # aabaab in aabaabaabaab.
@@ -322,7 +322,7 @@ defmodule ZXCVBN.Matching do
               }
             else
               {
-                regex_i_j(@lazy, part),
+                regex_i_j(@lazy, part, i),
                 lazy_first,
                 List.last(lazy_match)
               }
@@ -721,10 +721,10 @@ defmodule ZXCVBN.Matching do
     end)
   end
 
-  defp regex_i_j(regex, string) do
+  defp regex_i_j(regex, string, offset) do
     {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
     token = binary_part(string, start, byte_len)
-    {start, String.length(token) - 1}
+    {offset + start, offset + String.length(token) - 1}
   end
 
   # date stuff
