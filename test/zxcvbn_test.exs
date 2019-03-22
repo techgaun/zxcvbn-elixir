@@ -22,8 +22,13 @@ defmodule ZXCVBNTest do
         official_result = exec_node(str)
 
         assert Map.get(official_result, "guesses") === Map.get(result, :guesses)
-        assert get_in(official_result, ["feedback", "suggestions"]) === get_in(result, [:feedback, :suggestions])
-        assert get_in(official_result, ["feedback", "warning"]) === get_in(result, [:feedback, :warning])
+
+        assert get_in(official_result, ["feedback", "suggestions"]) ===
+                 get_in(result, [:feedback, :suggestions])
+
+        assert get_in(official_result, ["feedback", "warning"]) ===
+                 get_in(result, [:feedback, :warning])
+
         assert Map.get(official_result, "score") === Map.get(result, :score)
       end
     end

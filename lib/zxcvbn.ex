@@ -74,9 +74,11 @@ defmodule ZXCVBN do
 
   @spec zxcvbn(String.t(), [String.t()]) :: map | :error
   def zxcvbn(string, user_inputs \\ [])
+
   def zxcvbn("", _user_inputs) do
     :error
   end
+
   def zxcvbn(string, user_inputs) do
     start = time()
     user_inputs = normalize_inputs(user_inputs)

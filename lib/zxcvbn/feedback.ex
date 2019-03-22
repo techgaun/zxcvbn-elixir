@@ -12,8 +12,8 @@ defmodule ZXCVBN.Feedback do
   @default_feedback %{
     warning: "",
     suggestions: [
-      "Use a few words, avoid common phrases.",
-      "No need for symbols, digits, or uppercase letters."
+      "Use a few words, avoid common phrases",
+      "No need for symbols, digits, or uppercase letters"
     ]
   }
 
@@ -125,13 +125,13 @@ defmodule ZXCVBN.Feedback do
           get_password_dictionary_match_feedback(match, sole_match?)
 
         dictionary_name === :english_wikipedia and sole_match? ->
-          "A word by itself is easy to guess."
+          "A word by itself is easy to guess"
 
         dictionary_name in ~w(surnames male_names female_names)a ->
           if sole_match? do
-            "Names and surnames by themselves are easy to guess."
+            "Names and surnames by themselves are easy to guess"
           else
-            "Common names and surnames are easy to guess."
+            "Common names and surnames are easy to guess"
           end
 
         true ->
@@ -154,14 +154,14 @@ defmodule ZXCVBN.Feedback do
             "This is a top-10 common password"
 
           rank when rank <= 100 ->
-            "This is a top-100 common password."
+            "This is a top-100 common password"
 
           true ->
-            "This is a very common password."
+            "This is a very common password"
         end
 
       Map.get(match, :guesses_log10) <= 4 ->
-        "This is similar to a commonly used password."
+        "This is similar to a commonly used password"
 
       true ->
         ""
