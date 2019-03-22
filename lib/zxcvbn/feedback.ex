@@ -121,13 +121,13 @@ defmodule ZXCVBN.Feedback do
 
     warning =
       cond do
-        dictionary_name === "passwords" ->
+        dictionary_name === :passwords ->
           get_password_dictionary_match_feedback(match, sole_match?)
 
-        dictionary_name === "english" and sole_match? ->
+        dictionary_name === :english_wikipedia and sole_match? ->
           "A word by itself is easy to guess."
 
-        dictionary_name in ~w(surnames male_names female_names) ->
+        dictionary_name in ~w(surnames male_names female_names)a ->
           if sole_match? do
             "Names and surnames by themselves are easy to guess."
           else
