@@ -156,7 +156,7 @@ defmodule ZXCVBN.Feedback do
           rank when rank <= 100 ->
             "This is a top-100 common password"
 
-          true ->
+          _ ->
             "This is a very common password"
         end
 
