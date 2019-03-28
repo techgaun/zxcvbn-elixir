@@ -1,3 +1,9 @@
+# this gives us a rough idea of performance
+# comparison with executing js with node binary
+# is most likely to not reflect actual real data
+# but still gives us a good reference
+node_script = "#{File.cwd!()}/zxcvbn.js"
+
 passwords = %{
   "simple passwords" => [
     "sam",
@@ -38,7 +44,10 @@ passwords =
 
 Benchee.run(
   %{
-    "ZXCVBN.zxcvbn" => fn password -> ZXCVBN.zxcvbn(password) end
+    "ZXCVBN.zxcvbn" => fn password -> ZXCVBN.zxcvbn(password) end,
+    "zxcvbn-javascript" => fn password ->
+      {_r, 0} = System.cmd(node_script, [password])
+    end
   },
   inputs: passwords,
   time: 20,
