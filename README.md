@@ -151,6 +151,13 @@ The [zxcvbn.js](zxcvbn.js) is used to test the [correctness](test/zxcvbn_test.ex
 with the original implementation. ZXCVBN is a pure Elixir implementation
 and not a wrapper on top of javascript version.
 
+### Test Setup
+
+```
+npm install
+mix test
+```
+
 ## Author
 
 - [Samar Acharya](https://github.com/techgaun)
