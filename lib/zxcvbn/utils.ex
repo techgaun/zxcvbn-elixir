@@ -14,6 +14,22 @@ defmodule ZXCVBN.Utils do
     |> DateTime.to_unix(:millisecond)
   end
 
+  def strlen(string) do
+    byte_size(string)
+  end
+
+  def slice(string, l..r) do
+    slice(string, l, r - l + 1)
+  end
+
+  def slice(string, start_pos, len) do
+    binary_part(string, start_pos, len)
+  end
+
+  def downcase(string) do
+    String.downcase(string, :ascii)
+  end
+
   @spec factorial(integer) :: integer
   def factorial(n) do
     do_factorial(n, 1)

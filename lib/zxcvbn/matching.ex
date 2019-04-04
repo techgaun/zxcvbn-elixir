@@ -4,6 +4,7 @@ defmodule ZXCVBN.Matching do
   """
   import ZXCVBN.AdjacencyGraphs, only: [adjacency_graph: 0]
   import ZXCVBN.FrequencyLists, only: [frequency_lists: 0]
+  import ZXCVBN.Utils
 
   alias ZXCVBN.Scoring
 
@@ -106,8 +107,8 @@ defmodule ZXCVBN.Matching do
   # dictionary match (common passwords, english, last names, etc)
   @doc false
   def dictionary_match(password, ranked_dictionaries) do
-    length = String.length(password)
-    password_lower = String.downcase(password)
+    length = strlen(password)
+    password_lower = downcase(password)
 
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
@@ -123,7 +124,7 @@ defmodule ZXCVBN.Matching do
           i: i,
           j: j,
           token: token,
-          matched_word: token,
+          matched_word: word,
           rank: rank,
           dictionary_name: dictionary_name,
           reversed: false,
@@ -136,7 +137,7 @@ defmodule ZXCVBN.Matching do
 
   @doc false
   def reverse_dictionary_match(password, ranked_dictionaries) do
-    length = String.length(password)
+    length = strlen(password)
 
     password
     |> String.reverse()
@@ -156,9 +157,9 @@ defmodule ZXCVBN.Matching do
       subbed_password = translate(password, sub)
 
       for match <- dictionary_match(subbed_password, ranked_dictionaries) do
-        token = String.slice(password, match[:i], match[:j] + 1 - match[:i])
+        token = slice(password, match[:i], match[:j] + 1 - match[:i])
         # only return the matches that contain an actual substitution
-        if String.downcase(token) !== Map.get(match, :matched_word) do
+        if downcase(token) !== Map.get(match, :matched_word) do
           # subset of mappings in sub that are in use for this match
           token_graphemes = String.graphemes(token)
 
@@ -186,7 +187,7 @@ defmodule ZXCVBN.Matching do
         true
 
       %{token: token} ->
-        String.length(token) <= 1
+        strlen(token) <= 1
 
       _ ->
         false
@@ -293,18 +294,18 @@ defmodule ZXCVBN.Matching do
   # repeats (aaa, abcabcabc) and sequences (abcdef)
   @doc false
   def repeat_match(password, ranked_dictionaries) do
-    length = String.length(password)
+    length = strlen(password)
 
     Enum.reduce_while(0..(length - 1), [], fn i, matches ->
-      {_, part} = String.split_at(password, i)
+      part = binary_part(password, i, length - i)
       greedy_match = Regex.run(@greedy, part)
       lazy_match = Regex.run(@lazy, part)
 
       case greedy_match do
         [greedy_first, _] ->
-          greedy_len = String.length(greedy_first)
+          greedy_len = strlen(greedy_first)
           [lazy_first, _] = lazy_match
-          lazy_len = String.length(lazy_first)
+          lazy_len = strlen(lazy_first)
 
           {{i, j}, token, base_token} =
             if greedy_len > lazy_len do
@@ -343,7 +344,7 @@ defmodule ZXCVBN.Matching do
             base_token: base_token,
             base_guesses: Map.get(base_analysis, :guesses),
             base_matches: Map.get(base_analysis, :sequence),
-            repeat_count: trunc(String.length(token) / String.length(base_token))
+            repeat_count: trunc(strlen(token) / strlen(base_token))
           }
 
           {:cont, [match | matches]}
@@ -364,7 +365,7 @@ defmodule ZXCVBN.Matching do
   @shifted_rx ~r'[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]'
 
   def spatial_match_helper(password, graph, graph_name) do
-    length = String.length(password)
+    length = strlen(password)
 
     password
     |> do_spatial_match(graph, graph_name, 0, length, [])
@@ -412,7 +413,7 @@ defmodule ZXCVBN.Matching do
         []
       end
 
-    length = String.length(password)
+    length = strlen(password)
 
     # consider growing pattern by one character if j hasn't gone
     # over the edge.
@@ -478,7 +479,7 @@ defmodule ZXCVBN.Matching do
               pattern: :spatial,
               i: i,
               j: j - 1,
-              token: String.slice(password, i, j),
+              token: slice(password, i..(j-1)),
               graph: graph_name,
               turns: turns,
               shifted_count: shifted_count
@@ -496,7 +497,7 @@ defmodule ZXCVBN.Matching do
   @max_delta 5
 
   def sequence_match(password, ranked_dictionaries) do
-    if String.length(password) <= 1 do
+    if strlen(password) <= 1 do
       []
     else
       do_sequence_match(password, ranked_dictionaries)
@@ -519,7 +520,7 @@ defmodule ZXCVBN.Matching do
     update = fn
       i, j, delta, password, matches
       when (j - i > 1 or (is_number(delta) and abs(delta) === 1)) and abs(delta) in 1..@max_delta ->
-        token = String.slice(password, i, j + 1 - i)
+        token = slice(password, i, j + 1 - i)
 
         {sequence_name, sequence_space} =
           cond do
@@ -553,13 +554,13 @@ defmodule ZXCVBN.Matching do
         matches
     end
 
-    length = String.length(password)
+    length = strlen(password)
 
     {matches, last_delta, i} =
       Enum.reduce(1..(length - 1), {[], nil, 0}, fn k, {matches, last_delta, i} ->
         delta =
           password
-          |> String.slice(k - 1, 2)
+          |> slice(k - 1, 2)
           |> to_charlist()
           |> (fn [x, y] -> y - x end).()
 
@@ -581,7 +582,7 @@ defmodule ZXCVBN.Matching do
     for {name, regex} <- regexen do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
         token = binary_part(password, start, byte_len)
-        len = String.length(token)
+        len = strlen(token)
 
         %{
           pattern: :regex,
@@ -631,11 +632,11 @@ defmodule ZXCVBN.Matching do
 
   # dates without separators are between length 4 '1191' and 8 '11111991'
   defp date_no_separator_matches(password) do
-    length = String.length(password)
+    length = strlen(password)
 
-    for i <- 0..(length - 4), j <- (i + 3)..(i + 8), j < length do
-      token = String.slice(password, i..(j + 1))
-      token_length = String.length(token)
+    for i <- 0..(length - 4), j <- (i + 3)..(i + 8), i >= 0, j < length do
+      token = slice(password, i..j)
+      token_length = strlen(token)
 
       if Regex.match?(@maybe_date_no_separator, token) do
         candidates =
@@ -680,10 +681,10 @@ defmodule ZXCVBN.Matching do
 
   # dates with separators are between length 6 '1/1/91' and 10 '11/11/1991'
   defp date_with_separator_matches(password) do
-    length = String.length(password)
+    length = strlen(password)
 
-    for i <- 0..(length - 5), j <- (i + 5)..(i + 10), j < length do
-      token = String.slice(password, i..(j + 1))
+    for i <- 0..(length - 5), j <- (i + 5)..(i + 10), i >= 0, j < length do
+      token = slice(password, i..j)
 
       rx_match = Regex.run(@maybe_date_with_separator, token)
 
@@ -724,7 +725,7 @@ defmodule ZXCVBN.Matching do
   defp regex_i_j(regex, string, offset) do
     {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
     token = binary_part(string, start, byte_len)
-    {offset + start, offset + String.length(token) - 1}
+    {offset + start, offset + strlen(token) - 1}
   end
 
   # date stuff
@@ -841,13 +842,13 @@ defmodule ZXCVBN.Matching do
   end
 
   defp slice_to_integer(string, start) do
-    length = String.length(string)
+    length = strlen(string)
     slice_to_integer(string, start, length)
   end
 
   defp slice_to_integer(string, start, end_index) do
     string
-    |> String.slice(start..(end_index - 1))
+    |> slice(start..(end_index - 1))
     |> String.to_integer()
   end
 

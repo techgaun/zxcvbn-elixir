@@ -65,7 +65,7 @@ defmodule ZXCVBN.Scoring do
   ------------------------------------------------------------------------------
   """
   def most_guessable_match_sequence(password, matches, exclude_additive? \\ false) do
-    n = String.length(password)
+    n = strlen(password)
     n_minus_one = n - 1
     # partition matches into sublists according to ending index j
     matches_by_j = Enum.into(0..n_minus_one, %{}, &{&1, []})
@@ -108,7 +108,7 @@ defmodule ZXCVBN.Scoring do
 
     # corner: empty password
     guesses =
-      if String.length(password) === 0 do
+      if strlen(password) === 0 do
         1
       else
         optimal[:g][n - 1][optimal_l]
@@ -142,10 +142,10 @@ defmodule ZXCVBN.Scoring do
   end
 
   defp estimate_guesses(%{token: token, pattern: pattern} = match, password) do
-    token_len = String.length(token)
+    token_len = strlen(token)
 
     min_guesses =
-      if token_len < String.length(password) do
+      if token_len < strlen(password) do
         if token_len === 1,
           do: @min_submatch_guesses_single_char,
           else: @min_submatch_guesses_multi_char
@@ -172,7 +172,7 @@ defmodule ZXCVBN.Scoring do
 
   @doc false
   def bruteforce_guesses(%{token: token} = _match) do
-    token_len = String.length(token)
+    token_len = strlen(token)
     guesses = pow(@bruteforce_cardinality, token_len)
     # small detail: make bruteforce matches at minimum one guess bigger than
     # smallest allowed submatch guesses, such that non-bruteforce submatches
@@ -213,7 +213,7 @@ defmodule ZXCVBN.Scoring do
 
     base_guesses = if Map.get(match, :ascending), do: base_guesses, else: base_guesses * 2
 
-    base_guesses * String.length(token)
+    base_guesses * strlen(token)
   end
 
   @char_class_bases %{
@@ -232,7 +232,7 @@ defmodule ZXCVBN.Scoring do
 
     cond do
       char_class_base in @char_class_bases_names ->
-        pow(@char_class_bases[char_class_base], String.length(token))
+        pow(@char_class_bases[char_class_base], strlen(token))
 
       char_class_base === 'recent_year' ->
         # conservative estimate of year space: num years from `@reference_year`.
@@ -282,7 +282,7 @@ defmodule ZXCVBN.Scoring do
         {@keypad_starting_positions, @keypad_average_degree}
       end
 
-    l = String.length(token)
+    l = strlen(token)
     t = Map.get(match, :turns)
 
     # estimate the number of possible patterns w/ length L or less with t turns
@@ -349,7 +349,7 @@ defmodule ZXCVBN.Scoring do
 
   defp uppercase_variations(%{token: word} = _match) do
     cond do
-      Regex.match?(@all_lower, word) or String.downcase(word) === word ->
+      Regex.match?(@all_lower, word) or downcase(word) === word ->
         1
 
       Enum.any?([@start_upper, @end_upper, @all_upper], &Regex.match?(&1, word)) ->
@@ -370,9 +370,11 @@ defmodule ZXCVBN.Scoring do
               {u, l}
           end)
 
-        Enum.reduce(1..min(u, l), 0, fn i, variations ->
+        1..min(u, l)
+        |> Enum.reduce(0, fn i, variations ->
           variations + nCk(u + l, i)
         end)
+        |> trunc()
     end
   end
 
@@ -382,7 +384,7 @@ defmodule ZXCVBN.Scoring do
       # affect l33t calc.
       {s, u} =
         token
-        |> String.downcase()
+        |> downcase()
         |> to_charlist()
         |> Enum.reduce({0, 0}, fn
           chr, {s, u} when chr === subbed ->
@@ -420,83 +422,82 @@ defmodule ZXCVBN.Scoring do
   # (fewer guesses) than previously encountered sequences, updating state if
   # so.
   defp update(password, exclude_additive?, m, l, optimal) do
-      k = m[:j]
-      {m, pi} = estimate_guesses(m, password)
+    k = m[:j]
+    {m, pi} = estimate_guesses(m, password)
 
-      pi =
-        if l > 1 do
-          # we're considering a length-l sequence ending with match m:
-          # obtain the product term in the minimization function by
-          # multiplying m's guesses by the product of the length-(l-1)
-          # sequence ending just before m, at m.i - 1.
-          pi * optimal[:pi][m[:i] - 1][l - 1]
-        else
-          pi
-        end
-
-      # calculate the minimization func
-      g = factorial(l) * pi
-      g = if exclude_additive?, do: g, else: g + pow(@min_guesses_before_growing_sequence, l - 1)
-
-      # update state if new best.
-      # first see if any competing sequences covering this prefix, with l or
-      # fewer matches, fare better than this sequence. if so, skip it and
-      # return.
-
-      continue? =
-        Enum.reduce_while(optimal[:g][k], true, fn {competing_l, competing_g}, acc ->
-          cond do
-            competing_l > l ->
-              {:halt, true}
-
-            competing_g <= g ->
-              {:halt, false}
-
-            true ->
-              {:cont, acc}
-          end
-        end)
-
-      if continue? do
-        optimal
-        |> put_in([:g, k, l], g)
-        |> put_in([:m, k, l], m)
-        |> put_in([:pi, k, l], pi)
+    pi =
+      if l > 1 do
+        # we're considering a length-l sequence ending with match m:
+        # obtain the product term in the minimization function by
+        # multiplying m's guesses by the product of the length-(l-1)
+        # sequence ending just before m, at m.i - 1.
+        pi * optimal[:pi][m[:i] - 1][l - 1]
       else
-        optimal
+        pi
       end
+
+    # calculate the minimization func
+    g = factorial(l) * pi
+    g = if exclude_additive?, do: g, else: g + pow(@min_guesses_before_growing_sequence, l - 1)
+
+    # update state if new best.
+    # first see if any competing sequences covering this prefix, with l or
+    # fewer matches, fare better than this sequence. if so, skip it and
+    # return.
+
+    continue? =
+      Enum.reduce_while(optimal[:g][k], true, fn {competing_l, competing_g}, acc ->
+        cond do
+          competing_l > l ->
+            {:halt, true}
+
+          competing_g <= g ->
+            {:halt, false}
+
+          true ->
+            {:cont, acc}
+        end
+      end)
+
+    if continue? do
+      optimal
+      |> put_in([:g, k, l], g)
+      |> put_in([:m, k, l], m)
+      |> put_in([:pi, k, l], pi)
+    else
+      optimal
+    end
   end
 
   # helper: evaluate bruteforce matches ending at k.
   defp bruteforce_update(password, k, optimal, exclude_additive?) do
-      # see if a single bruteforce match spanning the k-prefix is optimal.
-      m = make_bruteforce_match(0, k, password)
-      optimal = update(password, exclude_additive?, m, 1, optimal)
+    # see if a single bruteforce match spanning the k-prefix is optimal.
+    m = make_bruteforce_match(0, k, password)
+    optimal = update(password, exclude_additive?, m, 1, optimal)
 
-      1
-      |> Stream.iterate(&(&1 + 1))
-      |> Enum.take(k)
-      |> Enum.reduce(optimal, fn i, optimal ->
-        # generate k bruteforce matches, spanning from (i=1, j=k) up to
-        # (i=k, j=k). see if adding these new matches to any of the
-        # sequences in optimal[i-1] leads to new bests.
-        m = make_bruteforce_match(i, k, password)
+    1
+    |> Stream.iterate(&(&1 + 1))
+    |> Enum.take(k)
+    |> Enum.reduce(optimal, fn i, optimal ->
+      # generate k bruteforce matches, spanning from (i=1, j=k) up to
+      # (i=k, j=k). see if adding these new matches to any of the
+      # sequences in optimal[i-1] leads to new bests.
+      m = make_bruteforce_match(i, k, password)
 
-        Enum.reduce(optimal[:m][i - 1], optimal, fn {l, last_m}, optimal ->
-          # corner: an optimal sequence will never have two adjacent
-          # bruteforce matches. it is strictly better to have a single
-          # bruteforce match spanning the same region: same contribution
-          # to the guess product with a lower length.
-          # --> safe to skip those cases.
-          if Map.get(last_m, :pattern) === :bruteforce do
-            optimal
-          else
-            update(password, exclude_additive?, m, l + 1, optimal)
-          end
-        end)
+      Enum.reduce(optimal[:m][i - 1], optimal, fn {l, last_m}, optimal ->
+        # corner: an optimal sequence will never have two adjacent
+        # bruteforce matches. it is strictly better to have a single
+        # bruteforce match spanning the same region: same contribution
+        # to the guess product with a lower length.
+        # --> safe to skip those cases.
+        if Map.get(last_m, :pattern) === :bruteforce do
+          optimal
+        else
+          update(password, exclude_additive?, m, l + 1, optimal)
+        end
       end)
+    end)
   end
-
 
   # helper: step backwards through optimal.m starting at the end,
   # constructing the final optimal match sequence.
@@ -523,7 +524,7 @@ defmodule ZXCVBN.Scoring do
   defp make_bruteforce_match(i, j, password) do
     %{
       pattern: :bruteforce,
-      token: String.slice(password, i..j),
+      token: slice(password, i..j),
       i: i,
       j: j
     }
