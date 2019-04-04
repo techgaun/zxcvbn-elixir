@@ -62,7 +62,8 @@ defmodule ZXCVBN do
 
   import ZXCVBN.Utils,
     only: [
-      time: 0
+      time: 0,
+      downcase: 1
     ]
 
   alias ZXCVBN.{
@@ -112,6 +113,6 @@ defmodule ZXCVBN do
   defp normalize_inputs(user_inputs) do
     user_inputs
     |> Stream.map(&to_string/1)
-    |> Enum.map(&String.downcase/1)
+    |> Enum.map(&downcase/1)
   end
 end
