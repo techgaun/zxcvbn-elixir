@@ -3,6 +3,7 @@
 ## 0.1.3
 
 - Improve performance
+- Fix incorrect match_word information
 
 ## 0.1.2
 
