@@ -14,6 +14,10 @@ defmodule ZXCVBN.Utils do
     |> DateTime.to_unix(:millisecond)
   end
 
+  def strlen(string) do
+    byte_size(string)
+  end
+
   def slice(string, l..r) do
     slice(string, l, r - l + 1)
   end

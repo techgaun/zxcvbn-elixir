@@ -3,6 +3,10 @@ defmodule ZXCVBN.Feedback do
   Feedback module to produce warning and suggestions
   """
 
+  import ZXCVBN.Utils,
+    only: [
+      strlen: 1
+    ]
   import ZXCVBN.Scoring,
     only: [
       re_start_upper: 0,
@@ -31,7 +35,7 @@ defmodule ZXCVBN.Feedback do
   end
 
   def get_feedback(_score, sequence) do
-    longest_match = Enum.max_by(sequence, fn %{token: token} -> String.length(token) end)
+    longest_match = Enum.max_by(sequence, fn %{token: token} -> strlen(token) end)
 
     %{warning: warning, suggestions: suggestions} =
       get_match_feedback(longest_match, length(sequence) === 1)
@@ -69,7 +73,7 @@ defmodule ZXCVBN.Feedback do
         base_token = Map.get(match, :base_token)
 
         warning =
-          if String.length(base_token) === 1 do
+          if strlen(base_token) === 1 do
             ~s(Repeats like "aaa" are easy to guess)
           else
             ~s(Repeats like "abcabcabc" are only slightly harder to guess than "abc")
@@ -191,7 +195,7 @@ defmodule ZXCVBN.Feedback do
   end
 
   defp reversed_suggestion(%{token: word} = match) do
-    if Map.get(match, :reversed, false) and String.length(word) >= 4 do
+    if Map.get(match, :reversed, false) and strlen(word) >= 4 do
       "Reversed words aren't much harder to guess"
     end
   end

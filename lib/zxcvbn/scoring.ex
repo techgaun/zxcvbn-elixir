@@ -65,7 +65,7 @@ defmodule ZXCVBN.Scoring do
   ------------------------------------------------------------------------------
   """
   def most_guessable_match_sequence(password, matches, exclude_additive? \\ false) do
-    n = String.length(password)
+    n = strlen(password)
     n_minus_one = n - 1
     # partition matches into sublists according to ending index j
     matches_by_j = Enum.into(0..n_minus_one, %{}, &{&1, []})
@@ -108,7 +108,7 @@ defmodule ZXCVBN.Scoring do
 
     # corner: empty password
     guesses =
-      if String.length(password) === 0 do
+      if strlen(password) === 0 do
         1
       else
         optimal[:g][n - 1][optimal_l]
@@ -142,10 +142,10 @@ defmodule ZXCVBN.Scoring do
   end
 
   defp estimate_guesses(%{token: token, pattern: pattern} = match, password) do
-    token_len = String.length(token)
+    token_len = strlen(token)
 
     min_guesses =
-      if token_len < String.length(password) do
+      if token_len < strlen(password) do
         if token_len === 1,
           do: @min_submatch_guesses_single_char,
           else: @min_submatch_guesses_multi_char
@@ -172,7 +172,7 @@ defmodule ZXCVBN.Scoring do
 
   @doc false
   def bruteforce_guesses(%{token: token} = _match) do
-    token_len = String.length(token)
+    token_len = strlen(token)
     guesses = pow(@bruteforce_cardinality, token_len)
     # small detail: make bruteforce matches at minimum one guess bigger than
     # smallest allowed submatch guesses, such that non-bruteforce submatches
@@ -213,7 +213,7 @@ defmodule ZXCVBN.Scoring do
 
     base_guesses = if Map.get(match, :ascending), do: base_guesses, else: base_guesses * 2
 
-    base_guesses * String.length(token)
+    base_guesses * strlen(token)
   end
 
   @char_class_bases %{
@@ -232,7 +232,7 @@ defmodule ZXCVBN.Scoring do
 
     cond do
       char_class_base in @char_class_bases_names ->
-        pow(@char_class_bases[char_class_base], String.length(token))
+        pow(@char_class_bases[char_class_base], strlen(token))
 
       char_class_base === 'recent_year' ->
         # conservative estimate of year space: num years from `@reference_year`.
@@ -282,7 +282,7 @@ defmodule ZXCVBN.Scoring do
         {@keypad_starting_positions, @keypad_average_degree}
       end
 
-    l = String.length(token)
+    l = strlen(token)
     t = Map.get(match, :turns)
 
     # estimate the number of possible patterns w/ length L or less with t turns
