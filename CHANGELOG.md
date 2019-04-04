@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Improve performance
+
 ## 0.1.2
 
 - Correctness with original implementation
