@@ -7,6 +7,7 @@ defmodule ZXCVBN.Feedback do
     only: [
       strlen: 1
     ]
+
   import ZXCVBN.Scoring,
     only: [
       re_start_upper: 0,
@@ -174,7 +175,6 @@ defmodule ZXCVBN.Feedback do
 
   defp gather_suggestions(match) do
     [
-      initial_uppercase_suggestion(match),
       uppercase_suggestion(match),
       reversed_suggestion(match),
       l33t_suggestion(match)
@@ -182,15 +182,18 @@ defmodule ZXCVBN.Feedback do
     |> Enum.reject(&is_nil/1)
   end
 
-  defp initial_uppercase_suggestion(%{token: word}) do
-    if Regex.match?(re_start_upper(), word) do
-      "Capitalization doesn't help very much"
-    end
-  end
-
   defp uppercase_suggestion(%{token: word}) do
-    if Regex.match?(re_all_upper(), word) and String.downcase(word) !== word do
-      "All-uppercase is almost as easy to guess as all-lowercase"
+    cond do
+      Regex.match?(re_start_upper(), word) ->
+        # initialization uppercase suggestion
+        "Capitalization doesn't help very much"
+
+      Regex.match?(re_all_upper(), word) and String.downcase(word) !== word ->
+        # all uppercase suggestion
+        "All-uppercase is almost as easy to guess as all-lowercase"
+
+      true ->
+        nil
     end
   end
 

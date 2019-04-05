@@ -479,7 +479,7 @@ defmodule ZXCVBN.Matching do
               pattern: :spatial,
               i: i,
               j: j - 1,
-              token: slice(password, i..(j-1)),
+              token: slice(password, i..(j - 1)),
               graph: graph_name,
               turns: turns,
               shifted_count: shifted_count
