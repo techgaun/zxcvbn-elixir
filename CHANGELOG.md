@@ -4,6 +4,7 @@
 
 - Improve performance
 - Fix incorrect match_word information
+- Fix suggestion generation for uppercase scenario
 
 ## 0.1.2
 
