@@ -113,11 +113,11 @@ defmodule ZXCVBN.Matching do
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
         j <- i..(length - 1) do
-      word = binary_part(password_lower, i, j + 1 - i)
+      word = slice(password_lower, i, j + 1 - i)
       rank = Map.get(ranked_dict, word)
 
       unless is_nil(rank) do
-        token = binary_part(password, i, j + 1 - i)
+        token = slice(password, i, j + 1 - i)
 
         %{
           pattern: :dictionary,
@@ -297,7 +297,7 @@ defmodule ZXCVBN.Matching do
     length = strlen(password)
 
     Enum.reduce_while(0..(length - 1), [], fn i, matches ->
-      part = binary_part(password, i, length - i)
+      part = slice(password, i, length - i)
       greedy_match = Regex.run(@greedy, part)
       lazy_match = Regex.run(@lazy, part)
 
@@ -581,7 +581,7 @@ defmodule ZXCVBN.Matching do
   def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
     for {name, regex} <- regexen do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
-        token = binary_part(password, start, byte_len)
+        token = slice(password, start, byte_len)
         len = strlen(token)
 
         %{
@@ -724,7 +724,7 @@ defmodule ZXCVBN.Matching do
 
   defp regex_i_j(regex, string, offset) do
     {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
-    token = binary_part(string, start, byte_len)
+    token = slice(string, start, byte_len)
     {offset + start, offset + strlen(token) - 1}
   end
 
