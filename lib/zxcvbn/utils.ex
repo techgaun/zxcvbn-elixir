@@ -15,7 +15,12 @@ defmodule ZXCVBN.Utils do
   end
 
   def strlen(string) do
-    byte_size(string)
+    case mode() do
+      :default ->
+        String.length(string)
+      _ ->
+        byte_size(string)
+    end
   end
 
   def slice(string, l..r) do
@@ -23,11 +28,16 @@ defmodule ZXCVBN.Utils do
   end
 
   def slice(string, start_pos, len) do
-    binary_part(string, start_pos, len)
+    case mode() do
+      :default ->
+        String.slice(string, start_pos, len)
+      _ ->
+        binary_part(string, start_pos, len)
+    end
   end
 
   def downcase(string) do
-    String.downcase(string, :ascii)
+    String.downcase(string, mode())
   end
 
   @spec factorial(integer) :: integer
@@ -53,4 +63,6 @@ defmodule ZXCVBN.Utils do
     end)
     |> Kernel./(map_size(graph) * 1.0)
   end
+
+  defp mode, do: Application.get_env(:zxcvbn, :mode, :default)
 end
