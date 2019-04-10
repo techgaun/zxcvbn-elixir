@@ -14,6 +14,16 @@ defmodule ZXCVBN.Utils do
     |> DateTime.to_unix(:millisecond)
   end
 
+  def strlen_bruteforce(string) do
+    string
+    |> to_charlist()
+    |> Enum.reduce(0, fn
+      i, len when i >= 0 and i <= 65535 ->
+        len + 1
+      _i, len ->
+        len + 2
+    end)
+  end
   def strlen(string) do
     case mode() do
       :default ->

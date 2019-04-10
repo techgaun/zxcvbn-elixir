@@ -161,7 +161,7 @@ defmodule ZXCVBN.Matching do
         # only return the matches that contain an actual substitution
         if downcase(token) !== Map.get(match, :matched_word) do
           # subset of mappings in sub that are in use for this match
-          token_graphemes = String.graphemes(token)
+          token_graphemes = String.codepoints(token)
 
           match_sub =
             for {subbed_chr, chr} <- sub, subbed_chr in token_graphemes do
@@ -195,7 +195,7 @@ defmodule ZXCVBN.Matching do
   end
 
   defp relevant_l33t_subtable(password, table) do
-    password_chars = String.graphemes(password)
+    password_chars = String.codepoints(password)
 
     for {letter, subs} <- table do
       relevant_subs =
@@ -221,7 +221,7 @@ defmodule ZXCVBN.Matching do
   end
 
   defp translate(string, chr_map) do
-    for char <- String.graphemes(string) do
+    for char <- String.codepoints(string) do
       if chr = Map.get(Enum.into(chr_map, %{}), char, false) do
         chr
       else
@@ -427,7 +427,7 @@ defmodule ZXCVBN.Matching do
           fn adj, {cur_direction, found, last_direction, turns, shifted_count} ->
             cur_direction = cur_direction + 1
 
-            if is_binary(adj) and cur_char in String.graphemes(adj) do
+            if is_binary(adj) and cur_char in String.codepoints(adj) do
               found = true
               found_direction = cur_direction
               cur_char_index = adj |> :binary.match(cur_char) |> elem(0)
