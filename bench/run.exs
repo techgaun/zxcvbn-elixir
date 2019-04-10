@@ -44,7 +44,14 @@ passwords =
 
 Benchee.run(
   %{
-    "ZXCVBN.zxcvbn" => fn password -> ZXCVBN.zxcvbn(password) end,
+    "ZXCVBN.zxcvbn" => fn password ->
+      Application.put_env(:zxcvbn, :mode, :default)
+      ZXCVBN.zxcvbn(password)
+    end,
+    "ZXCVBN.zxcvbn ascii" => fn password ->
+      Application.put_env(:zxcvbn, :mode, :ascii)
+      ZXCVBN.zxcvbn(password)
+    end,
     "zxcvbn-javascript" => fn password ->
       {_r, 0} = System.cmd(node_script, [password])
     end
