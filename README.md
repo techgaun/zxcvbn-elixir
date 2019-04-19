@@ -26,6 +26,15 @@ zxcvbn("Some Password")
 zxcvbn("Password1", ["user@email.com", "Nepal", "Kathmandu"])
 ```
 
+### Configuration
+
+zxcvbn can be limited to only ascii charsets by setting mode in config as below:
+
+```elixir
+config :zxcvbn,
+  mode: :ascii
+```
+
 ### Usage Notes
 
 - Ideally, when you are using ZXCVBN, pass the first 100-200 characters only for reasonable latency.

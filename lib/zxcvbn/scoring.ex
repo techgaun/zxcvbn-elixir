@@ -172,7 +172,7 @@ defmodule ZXCVBN.Scoring do
 
   @doc false
   def bruteforce_guesses(%{token: token} = _match) do
-    token_len = strlen(token)
+    token_len = strlen_bruteforce(token)
     guesses = pow(@bruteforce_cardinality, token_len)
     # small detail: make bruteforce matches at minimum one guess bigger than
     # smallest allowed submatch guesses, such that non-bruteforce submatches

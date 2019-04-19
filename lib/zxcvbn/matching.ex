@@ -113,11 +113,11 @@ defmodule ZXCVBN.Matching do
     for {dictionary_name, ranked_dict} <- ranked_dictionaries,
         i <- 0..(length - 1),
         j <- i..(length - 1) do
-      word = binary_part(password_lower, i, j + 1 - i)
+      word = slice(password_lower, i, j + 1 - i)
       rank = Map.get(ranked_dict, word)
 
       unless is_nil(rank) do
-        token = binary_part(password, i, j + 1 - i)
+        token = slice(password, i, j + 1 - i)
 
         %{
           pattern: :dictionary,
@@ -161,7 +161,7 @@ defmodule ZXCVBN.Matching do
         # only return the matches that contain an actual substitution
         if downcase(token) !== Map.get(match, :matched_word) do
           # subset of mappings in sub that are in use for this match
-          token_graphemes = String.graphemes(token)
+          token_graphemes = String.codepoints(token)
 
           match_sub =
             for {subbed_chr, chr} <- sub, subbed_chr in token_graphemes do
@@ -195,7 +195,7 @@ defmodule ZXCVBN.Matching do
   end
 
   defp relevant_l33t_subtable(password, table) do
-    password_chars = String.graphemes(password)
+    password_chars = String.codepoints(password)
 
     for {letter, subs} <- table do
       relevant_subs =
@@ -221,7 +221,7 @@ defmodule ZXCVBN.Matching do
   end
 
   defp translate(string, chr_map) do
-    for char <- String.graphemes(string) do
+    for char <- String.codepoints(string) do
       if chr = Map.get(Enum.into(chr_map, %{}), char, false) do
         chr
       else
@@ -297,7 +297,7 @@ defmodule ZXCVBN.Matching do
     length = strlen(password)
 
     Enum.reduce_while(0..(length - 1), [], fn i, matches ->
-      part = binary_part(password, i, length - i)
+      part = slice(password, i, length - i)
       greedy_match = Regex.run(@greedy, part)
       lazy_match = Regex.run(@lazy, part)
 
@@ -427,7 +427,7 @@ defmodule ZXCVBN.Matching do
           fn adj, {cur_direction, found, last_direction, turns, shifted_count} ->
             cur_direction = cur_direction + 1
 
-            if is_binary(adj) and cur_char in String.graphemes(adj) do
+            if is_binary(adj) and cur_char in String.codepoints(adj) do
               found = true
               found_direction = cur_direction
               cur_char_index = adj |> :binary.match(cur_char) |> elem(0)
@@ -581,7 +581,7 @@ defmodule ZXCVBN.Matching do
   def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
     for {name, regex} <- regexen do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
-        token = binary_part(password, start, byte_len)
+        token = slice(password, start, byte_len)
         len = strlen(token)
 
         %{
@@ -724,7 +724,7 @@ defmodule ZXCVBN.Matching do
 
   defp regex_i_j(regex, string, offset) do
     {start, byte_len} = regex |> Regex.run(string, return: :index) |> hd()
-    token = binary_part(string, start, byte_len)
+    token = slice(string, start, byte_len)
     {offset + start, offset + strlen(token) - 1}
   end
 
