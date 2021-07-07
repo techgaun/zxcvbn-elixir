@@ -36,9 +36,11 @@ defmodule ZXCVBNTest do
     # end
 
     property "handles given ascii string in ascii mode" do
-      check all str <- string(:ascii, max_length: 10, min_length: 1),
-                times <- integer(1..20),
-                times >= 0 do
+      check all(
+              str <- string(:ascii, max_length: 10, min_length: 1),
+              times <- integer(1..20),
+              times >= 0
+            ) do
         Application.put_env(:zxcvbn, :mode, :ascii)
         %{calc_time: calc_time, password: password, score: score} = result = ZXCVBN.zxcvbn(str)
         assert password === str
@@ -60,9 +62,11 @@ defmodule ZXCVBNTest do
     end
 
     property "handles given ascii string in unicode mode" do
-      check all str <- string(:ascii, max_length: 10, min_length: 1),
-                times <- integer(1..20),
-                times >= 0 do
+      check all(
+              str <- string(:ascii, max_length: 10, min_length: 1),
+              times <- integer(1..20),
+              times >= 0
+            ) do
         Application.put_env(:zxcvbn, :mode, :ascii)
         %{calc_time: calc_time, password: password, score: score} = result = ZXCVBN.zxcvbn(str)
         assert password === str
@@ -90,5 +94,17 @@ defmodule ZXCVBNTest do
     readme = File.read!("README.md")
     [_, readme_version] = Regex.run(~r/{:#{app}, "(.+)"}/, readme)
     assert Version.match?(app_version, readme_version)
+  end
+
+  test "should translate feedback messages with gettext" do
+    [
+      %{locale: "en", expected: "Dates are often easy to guess"},
+      %{locale: "fr", expected: "Les dates sont souvent faciles à deviner"}
+    ]
+    |> Enum.each(fn %{locale: locale, expected: expected} ->
+      Gettext.with_locale(ZXCVBN.Gettext, locale, fn ->
+        %{feedback: %{warning: ^expected}} = ZXCVBN.zxcvbn("20110101")
+      end)
+    end)
   end
 end

@@ -1,0 +1,146 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here as no
+## effect: edit them in PO (.po) files instead.
+msgid ""
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:64
+msgid "Straight rows of keys are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:139
+msgid "A word by itself is easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:47
+msgid "Add another word or two. Uncommon words are better."
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:199
+msgid "All-uppercase is almost as easy to guess as all-lowercase"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:121
+msgid "Avoid dates and years that are associated with you"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:109
+msgid "Avoid recent years"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:92
+msgid "Avoid repeated words and characters"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:100
+msgid "Avoid sequences"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:110
+msgid "Avoid years that are associated with you"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:195
+msgid "Capitalization doesn't help very much"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:145
+msgid "Common names and surnames are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:119
+msgid "Dates are often easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:143
+msgid "Names and surnames by themselves are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:28
+msgid "No need for symbols, digits, or uppercase letters"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:213
+msgid "Predictable substitutions like '@' instead of 'a' don't help very much"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:107
+msgid "Recent years are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:81
+msgid "Repeats like \"aaa\" are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:83
+msgid "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\""
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:208
+msgid "Reversed words aren't much harder to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:98
+msgid "Sequences like abc or 6543 are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:66
+msgid "Short keyboard patterns are easy to guess"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:165
+msgid "This is a top-10 common password"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:168
+msgid "This is a top-100 common password"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:171
+msgid "This is a very common password"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:175
+msgid "This is similar to a commonly used password"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:27
+msgid "Use a few words, avoid common phrases"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:72
+msgid "Use a longer keyboard pattern with more turns"
+msgstr ""

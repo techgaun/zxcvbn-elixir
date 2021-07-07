@@ -1,0 +1,147 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Plural-Forms: nplurals=1\n"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:64
+msgid "Straight rows of keys are easy to guess"
+msgstr "Les suites de touches voisines sont simples à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:139
+msgid "A word by itself is easy to guess"
+msgstr "Un seul mot est simple à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:47
+msgid "Add another word or two. Uncommon words are better."
+msgstr "Ajoutez un mot ou deux. Les mots peu communs sont mieux."
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:199
+msgid "All-uppercase is almost as easy to guess as all-lowercase"
+msgstr "Variez les minuscules et majuscules"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:121
+msgid "Avoid dates and years that are associated with you"
+msgstr "Évitez les dates et années qui vous sont associées"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:109
+msgid "Avoid recent years"
+msgstr "Évitez les années récentes"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:92
+msgid "Avoid repeated words and characters"
+msgstr "Évitez de répéter des mots ou des caractères"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:100
+msgid "Avoid sequences"
+msgstr "Évitez les séquences"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:110
+msgid "Avoid years that are associated with you"
+msgstr "Évitez les années qui vous sont associées"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:195
+msgid "Capitalization doesn't help very much"
+msgstr "Mettre une majuscule au début n'est pas efficace"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:145
+msgid "Common names and surnames are easy to guess"
+msgstr "Les noms communs et les pseudonymes sont faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:119
+msgid "Dates are often easy to guess"
+msgstr "Les dates sont souvent faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:143
+msgid "Names and surnames by themselves are easy to guess"
+msgstr "Les noms et surnoms sont faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:28
+msgid "No need for symbols, digits, or uppercase letters"
+msgstr "Il n'y a pas besoin de caractères spéciaux, de chiffres ou de majuscules"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:213
+msgid "Predictable substitutions like '@' instead of 'a' don't help very much"
+msgstr "Les substitutions classiques comme '@' au lieu de 'a' sont faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:107
+msgid "Recent years are easy to guess"
+msgstr "Évitez les années récentes"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:81
+msgid "Repeats like \"aaa\" are easy to guess"
+msgstr "Les répétitions comme \"aaa\" sont simples à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:83
+msgid "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\""
+msgstr "Les répétitions comme \"abcabcabc\" sont aussi simples que \"abc\" à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:208
+msgid "Reversed words aren't much harder to guess"
+msgstr "Les mots inversés sont faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:98
+msgid "Sequences like abc or 6543 are easy to guess"
+msgstr "Les séquences comme abc ou 6543 sont simples à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:66
+msgid "Short keyboard patterns are easy to guess"
+msgstr "Les motifs courts du clavier sont faciles à deviner"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:165
+msgid "This is a top-10 common password"
+msgstr "Ce mot de passe est dans les 10 plus courants"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:168
+msgid "This is a top-100 common password"
+msgstr "Ce mot de passe est dans les 100 plus courants"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:171
+msgid "This is a very common password"
+msgstr "Ce mot de passe est extrêmement courant"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:175
+msgid "This is similar to a commonly used password"
+msgstr "Ce mot de passe est similaire à un mot de passe courant"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:27
+msgid "Use a few words, avoid common phrases"
+msgstr "Utilisez quelques mots, évitez les phrases courantes"
+
+#, elixir-format
+#: lib/zxcvbn/feedback.ex:72
+msgid "Use a longer keyboard pattern with more turns"
+msgstr "Utilisez un motif plus long et plus complexe"

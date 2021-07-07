@@ -20,14 +20,17 @@ defmodule ZXCVBN.Utils do
     |> Enum.reduce(0, fn
       i, len when i >= 0 and i <= 65535 ->
         len + 1
+
       _i, len ->
         len + 2
     end)
   end
+
   def strlen(string) do
     case mode() do
       :default ->
         String.length(string)
+
       _ ->
         byte_size(string)
     end
@@ -41,6 +44,7 @@ defmodule ZXCVBN.Utils do
     case mode() do
       :default ->
         String.slice(string, start_pos, len)
+
       _ ->
         binary_part(string, start_pos, len)
     end
