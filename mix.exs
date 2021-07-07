@@ -50,7 +50,8 @@ defmodule ZXCVBN.MixProject do
       {:benchee_html, "~> 0.3", only: :dev},
       {:excoveralls, "~> 0.10.6", only: :test},
       {:stream_data, "~> 0.1", only: :test},
-      {:jason, "~> 1.1", only: [:dev, :test]}
+      {:jason, "~> 1.1", only: [:dev, :test]},
+      {:gettext, "~> 0.18.2"}
     ]
   end
 

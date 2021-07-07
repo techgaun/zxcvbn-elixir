@@ -1,0 +1,64 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:91
+msgid "%{base} day"
+msgid_plural "%{base} days"
+msgstr[0] "%{base} day"
+msgstr[1] "%{base} days"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:87
+msgid "%{base} hour"
+msgid_plural "%{base} hours"
+msgstr[0] "%{base} hour"
+msgstr[1] "%{base} hours"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:81
+msgid "%{base} minute"
+msgid_plural "%{base} minutes"
+msgstr[0] "%{base} minute"
+msgstr[1] "%{base} minutes"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:97
+msgid "%{base} month"
+msgid_plural "%{base} months"
+msgstr[0] "%{base} month"
+msgstr[1] "%{base} months"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:75
+msgid "%{base} second"
+msgid_plural "%{base} seconds"
+msgstr[0] "%{base} second"
+msgstr[1] "%{base} seconds"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:103
+msgid "%{base} year"
+msgid_plural "%{base} years"
+msgstr[0] "%{base} year"
+msgstr[1] "%{base} years"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:106
+msgid "centuries"
+msgstr "centuries"
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:69
+msgid "less than a second"
+msgstr "less than a second"

@@ -3,6 +3,8 @@ defmodule ZXCVBN.TimeEstimates do
   Calculate various attacking times
   """
 
+  import ZXCVBN.Gettext
+
   def estimate_attack_times(guesses) do
     crack_times_seconds = %{
       online_throttling_100_per_hour: guesses / (100 / 3600),
@@ -61,43 +63,41 @@ defmodule ZXCVBN.TimeEstimates do
   @century @year * 100
 
   defp display_time(seconds) do
-    {display_num, display_str} =
-      cond do
-        seconds < 1 ->
-          {nil, "less than a second"}
+    cond do
+      seconds < 1 ->
+        dgettext("time_estimates", "less than a second")
 
-        seconds < @minute ->
-          base = trunc(seconds)
-          {base, "#{base} second"}
+      seconds < @minute ->
+        base = trunc(seconds)
 
-        seconds < @hour ->
-          base = trunc(seconds / @minute)
-          {base, "#{base} minute"}
+        dngettext("time_estimates", "%{base} second", "%{base} seconds", base, %{base: base})
 
-        seconds < @day ->
-          base = trunc(seconds / @hour)
-          {base, "#{base} hour"}
+      seconds < @hour ->
+        base = trunc(seconds / @minute)
 
-        seconds < @month ->
-          base = trunc(seconds / @day)
-          {base, "#{base} day"}
+        dngettext("time_estimates", "%{base} minute", "%{base} minutes", base, %{base: base})
 
-        seconds < @year ->
-          base = trunc(seconds / @month)
-          {base, "#{base} month"}
+      seconds < @day ->
+        base = trunc(seconds / @hour)
 
-        seconds < @century ->
-          base = trunc(seconds / @year)
-          {base, "#{base} year"}
+        dngettext("time_estimates", "%{base} hour", "%{base} hours", base, %{base: base})
 
-        true ->
-          {nil, "centuries"}
-      end
+      seconds < @month ->
+        base = trunc(seconds / @day)
+        dngettext("time_estimates", "%{base} day", "%{base} days", base, %{base: base})
 
-    if is_integer(display_num) and display_num != 1 do
-      "#{display_str}s"
-    else
-      display_str
+      seconds < @year ->
+        base = trunc(seconds / @month)
+
+        dngettext("time_estimates", "%{base} month", "%{base} months", base, %{base: base})
+
+      seconds < @century ->
+        base = trunc(seconds / @year)
+
+        dngettext("time_estimates", "%{base} year", "%{base} years", base, %{base: base})
+
+      true ->
+        dgettext("time_estimates", "centuries")
     end
   end
 end

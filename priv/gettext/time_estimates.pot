@@ -1,0 +1,63 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here as no
+## effect: edit them in PO (.po) files instead.
+msgid ""
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:91
+msgid "%{base} day"
+msgid_plural "%{base} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:87
+msgid "%{base} hour"
+msgid_plural "%{base} hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:81
+msgid "%{base} minute"
+msgid_plural "%{base} minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:97
+msgid "%{base} month"
+msgid_plural "%{base} months"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:75
+msgid "%{base} second"
+msgid_plural "%{base} seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:103
+msgid "%{base} year"
+msgid_plural "%{base} years"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:106
+msgid "centuries"
+msgstr ""
+
+#, elixir-format
+#: lib/zxcvbn/time_estimates.ex:69
+msgid "less than a second"
+msgstr ""
