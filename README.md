@@ -35,6 +35,22 @@ config :zxcvbn,
   mode: :ascii
 ```
 
+zxcvbn allow to customize feedback messages, for example to add I18n feature.
+
+```elixir
+config :zxcvbn,
+  message_formatter: MyApp.ZXCVBNMessageFormatter
+```
+
+```elixir
+defmodule MyApp.ZXCVBNMessageFormatter do
+  def format(str) do
+    Gettext.dgettext(MyAppWeb.Gettext, "zxcvbn", str)
+  end
+end
+```
+
+
 ### Usage Notes
 
 - Ideally, when you are using ZXCVBN, pass the first 100-200 characters only for reasonable latency.
