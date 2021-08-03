@@ -14,13 +14,7 @@ defmodule ZXCVBN.Feedback do
       re_all_upper: 0
     ]
 
-  @default_feedback %{
-    warning: "",
-    suggestions: [
-      "Use a few words, avoid common phrases",
-      "No need for symbols, digits, or uppercase letters"
-    ]
-  }
+  import ZXCVBN.MessageFormatter, only: [format: 1]
 
   @empty_feedback %{
     warning: "",
@@ -28,7 +22,13 @@ defmodule ZXCVBN.Feedback do
   }
 
   def get_feedback(_score, []) do
-    @default_feedback
+    %{
+      warning: "",
+      suggestions: [
+        format("Use a few words, avoid common phrases"),
+        format("No need for symbols, digits, or uppercase letters")
+      ]
+    }
   end
 
   def get_feedback(score, _sequence) when score > 2 do
@@ -44,12 +44,12 @@ defmodule ZXCVBN.Feedback do
     extra_feedback = "Add another word or two. Uncommon words are better."
 
     %{
-      warning: warning,
-      suggestions: [extra_feedback | suggestions]
+      warning: format(warning),
+      suggestions: [extra_feedback | suggestions] |> Enum.map(&format/1)
     }
   end
 
-  def get_match_feedback(%{pattern: pattern} = match, sole_match?) do
+  defp get_match_feedback(%{pattern: pattern} = match, sole_match?) do
     case pattern do
       :dictionary ->
         get_dictionary_match_feedback(match, sole_match?)
@@ -81,7 +81,7 @@ defmodule ZXCVBN.Feedback do
           end
 
         %{
-          warning: warning,
+          warning: format(warning),
           suggestions: [
             "Avoid repeated words and characters"
           ]
@@ -121,7 +121,7 @@ defmodule ZXCVBN.Feedback do
     end
   end
 
-  def get_dictionary_match_feedback(match, sole_match?) do
+  defp get_dictionary_match_feedback(match, sole_match?) do
     dictionary_name = Map.get(match, :dictionary_name)
 
     warning =
