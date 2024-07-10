@@ -234,7 +234,7 @@ defmodule ZXCVBN.Scoring do
       char_class_base in @char_class_bases_names ->
         pow(@char_class_bases[char_class_base], strlen(token))
 
-      char_class_base === 'recent_year' ->
+      char_class_base === ~c"recent_year" ->
         # conservative estimate of year space: num years from `@reference_year`.
         # if year is close to `@reference_year`, estimate a year space of
         # `@min_year_space`
