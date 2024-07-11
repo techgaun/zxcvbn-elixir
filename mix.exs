@@ -6,7 +6,7 @@ defmodule ZXCVBN.MixProject do
   def project do
     [
       app: :zxcvbn,
-      version: "0.1.3",
+      version: "0.1.4",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       build_permanent: Mix.env() == :prod,
