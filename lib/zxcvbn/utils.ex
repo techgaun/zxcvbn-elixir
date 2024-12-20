@@ -33,7 +33,7 @@ defmodule ZXCVBN.Utils do
     end
   end
 
-  def slice(string, l..r) do
+  def slice(string, l..r//_) do
     slice(string, l, r - l + 1)
   end
 
