@@ -634,7 +634,7 @@ defmodule ZXCVBN.Matching do
   defp date_no_separator_matches(password) do
     length = strlen(password)
 
-    for i <- Range.new(0, length - 4), j <- Range.new(i + 3, i + 8), i >= 0, j < length do
+    for i <- Range.new(0, length - 4, 1), j <- Range.new(i + 3, i + 8), i >= 0, j < length do
       token = slice(password, i..j)
       token_length = strlen(token)
 
@@ -683,7 +683,7 @@ defmodule ZXCVBN.Matching do
   defp date_with_separator_matches(password) do
     length = strlen(password)
 
-    for i <- Range.new(0, length - 5), j <- Range.new(i + 5, i + 10), i >= 0, j < length do
+    for i <- Range.new(0, length - 5, 1), j <- Range.new(i + 5, i + 10), i >= 0, j < length do
       token = slice(password, i..j)
 
       rx_match = Regex.run(@maybe_date_with_separator, token)
