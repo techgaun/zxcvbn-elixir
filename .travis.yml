@@ -3,12 +3,13 @@ dist: xenial
 language: elixir
 
 elixir:
-  - 1.8.1
-  - 1.7.4
+  - 1.17.3
+  - 1.18.1
 
 otp_release:
-  - 21.3
-  - 20.3.3
+  - 25.3
+  - 26.2.5
+  - 27.2
 
 env:
   global:

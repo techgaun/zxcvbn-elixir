@@ -7,7 +7,7 @@
 ```elixir
 def deps do
   [
-    {:zxcvbn, "~> 0.2.0"}
+    {:zxcvbn, "~> 0.3.0"}
   ]
 end
 ```
