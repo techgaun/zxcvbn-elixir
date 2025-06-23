@@ -38,7 +38,6 @@ defmodule ZXCVBN.Matching do
     z: ["2"]
   }
 
-  @regexen %{recent_year: ~r'19\d\d|200\d|201\d'}
   @date_max_year 2_050
   @date_min_year 1_000
   @date_splits %{
@@ -288,18 +287,19 @@ defmodule ZXCVBN.Matching do
     deduped
   end
 
-  @greedy ~r'(.+)\1+'
-  @lazy ~r'(.+?)\1+'
-  @lazy_anchored ~r'^(.+?)\1+$'
   # repeats (aaa, abcabcabc) and sequences (abcdef)
   @doc false
   def repeat_match(password, ranked_dictionaries) do
+    greedy = ~r'(.+)\1+'
+    lazy = ~r'(.+?)\1+'
+    lazy_anchored = ~r'^(.+?)\1+$'
+
     length = strlen(password)
 
     Enum.reduce_while(0..(length - 1), [], fn i, matches ->
       part = slice(password, i, length - i)
-      greedy_match = Regex.run(@greedy, part)
-      lazy_match = Regex.run(@lazy, part)
+      greedy_match = Regex.run(greedy, part)
+      lazy_match = Regex.run(lazy, part)
 
       case greedy_match do
         [greedy_first, _] ->
@@ -313,17 +313,17 @@ defmodule ZXCVBN.Matching do
               #   greedy: [aabaab, aab]
               #   lazy:   [aa,     a]
               {
-                regex_i_j(@greedy, part, i),
+                regex_i_j(greedy, part, i),
                 greedy_first,
                 # greedy's repeated string might itself be repeated, eg.
                 # aabaab in aabaabaabaab.
                 # run an anchored lazy match on greedy's repeated string
                 # to find the shortest repeated string
-                Regex.run(@lazy_anchored, greedy_first) |> List.last()
+                Regex.run(lazy_anchored, greedy_first) |> List.last()
               }
             else
               {
-                regex_i_j(@lazy, part, i),
+                regex_i_j(lazy, part, i),
                 lazy_first,
                 List.last(lazy_match)
               }
@@ -578,7 +578,7 @@ defmodule ZXCVBN.Matching do
     update.(i, length - 1, last_delta, password, matches)
   end
 
-  def regex_match(password, regexen \\ @regexen, _ranked_dictionaries) do
+  def regex_match(password, regexen \\ %{recent_year: ~r'19\d\d|200\d|201\d'}, _ranked_dictionaries) do
     for {name, regex} <- regexen do
       for {start, byte_len} <- Regex.scan(regex, password, return: :index) |> List.flatten() do
         token = slice(password, start, byte_len)
